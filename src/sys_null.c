@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "errno.h"
-
+#include <sys/time.h>
 /*
 ===============================================================================
 
@@ -36,7 +36,7 @@ FILE    *sys_handles[MAX_HANDLES];
 int             findhandle (void)
 {
 	int             i;
-	
+
 	for (i=1 ; i<MAX_HANDLES ; i++)
 		if (!sys_handles[i])
 			return i;
@@ -66,7 +66,7 @@ int Sys_FileOpenRead (char *path, int *hndl)
 {
 	FILE    *f;
 	int             i;
-	
+
 	i = findhandle ();
 
 	f = fopen(path, "rb");
@@ -77,7 +77,7 @@ int Sys_FileOpenRead (char *path, int *hndl)
 	}
 	sys_handles[i] = f;
 	*hndl = i;
-	
+
 	return filelength(f);
 }
 
@@ -85,14 +85,14 @@ int Sys_FileOpenWrite (char *path)
 {
 	FILE    *f;
 	int             i;
-	
+
 	i = findhandle ();
 
 	f = fopen(path, "wb");
 	if (!f)
 		Sys_Error ("Error opening %s: %s", path,strerror(errno));
 	sys_handles[i] = f;
-	
+
 	return i;
 }
 
@@ -120,14 +120,14 @@ int Sys_FileWrite (int handle, void *data, int count)
 int     Sys_FileTime (char *path)
 {
 	FILE    *f;
-	
+
 	f = fopen(path, "rb");
 	if (f)
 	{
 		fclose(f);
 		return 1;
 	}
-	
+
 	return -1;
 }
 
@@ -153,7 +153,7 @@ void Sys_Error (char *error, ...)
 {
 	va_list         argptr;
 
-	printf ("Sys_Error: ");   
+	printf ("Sys_Error: ");
 	va_start (argptr,error);
 	vprintf (error,argptr);
 	va_end (argptr);
@@ -165,7 +165,7 @@ void Sys_Error (char *error, ...)
 void Sys_Printf (char *fmt, ...)
 {
 	va_list         argptr;
-	
+
 	va_start (argptr,fmt);
 	vprintf (fmt,argptr);
 	va_end (argptr);
@@ -178,11 +178,19 @@ void Sys_Quit (void)
 
 double Sys_FloatTime (void)
 {
-	static double t;
-	
-	t += 0.1;
-	
-	return t;
+   struct timeval tp;
+   struct timezone tzp;
+   static int      secbase;
+
+   gettimeofday(&tp, &tzp);
+
+   if (!secbase)
+   {
+       secbase = tp.tv_sec;
+       return tp.tv_usec/1000000.0;
+   }
+
+   return (tp.tv_sec - secbase) + tp.tv_usec/1000000.0;
 }
 
 char *Sys_ConsoleInput (void)
@@ -211,8 +219,9 @@ void Sys_LowFPPrecision (void)
 void main (int argc, char **argv)
 {
 	static quakeparms_t    parms;
+    double		time, oldtime, newtime;
 
-	parms.memsize = 8*1024*1024;
+	parms.memsize = 16*1024*1024;
 	parms.membase = malloc (parms.memsize);
 	parms.basedir = ".";
 
@@ -223,10 +232,37 @@ void main (int argc, char **argv)
 
 	printf ("Host_Init\n");
 	Host_Init (&parms);
-	while (1)
-	{
-		Host_Frame (0.1);
-	}
+	/* while (1) */
+	/* { */
+	/* 	Host_Frame (0.1); */
+	/* } */
+
+    oldtime = Sys_FloatTime () - 0.1;
+    while (1)
+    {
+// find time spent rendering last frame
+        newtime = Sys_FloatTime ();
+        time = newtime - oldtime;
+
+        /* if (cls.state == ca_dedicated) */
+        /* {   // play vcrfiles at max speed */
+        /*     if (time < sys_ticrate.value && (vcrFile == -1 || recording) ) */
+        /*     { */
+		/* 		usleep(1); */
+        /*         continue;       // not time to run a server only tic yet */
+        /*     } */
+        /*     time = sys_ticrate.value; */
+        /* } */
+
+        if (time > sys_ticrate.value*2)
+            oldtime = newtime;
+        else
+            oldtime += time;
+
+        Host_Frame (time);
+
+// graphic debugging aids
+        /* if (sys_linerefresh.value) */
+        /*     Sys_LineRefresh (); */
+    }
 }
-
-
