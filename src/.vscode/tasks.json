@@ -1,0 +1,24 @@
+{
+    "command": "mingw32-make",
+    "isShellCommand": true,
+    "tasks": [
+        {
+            "taskName": "Makefile",
+            "isBuildCommand": true,
+            "showOutput": "always",
+            "args": ["-C", "${workspaceRoot}/../build", "all"],
+            "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation": "absolute",
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }
+            }
+        }
+    ]
+}
