@@ -6,7 +6,7 @@
             "taskName": "Makefile",
             "isBuildCommand": true,
             "showOutput": "always",
-            "args": ["-C", "${workspaceRoot}/../build", "all"],
+            "args": ["-C", "${workspaceRoot}/../build", "-j4" , "all"],
             "problemMatcher": {
                 "owner": "cpp",
                 "fileLocation": "absolute",
