@@ -36,7 +36,7 @@ FILE IO
 #define MAX_HANDLES             10
 FILE    *sys_handles[MAX_HANDLES];
 
-int             findhandle (void)
+int findhandle (void)
 {
 	int             i;
 
@@ -340,6 +340,9 @@ void Sys_LowFPPrecision (void)
 
 int main (int argc, char **argv)
 {
+	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+	atexit(SDL_Quit);
+
 	static quakeparms_t    parms;
     double		time, oldtime, newtime;
 
@@ -354,15 +357,11 @@ int main (int argc, char **argv)
 
 	printf ("Host_Init\n");
 	Host_Init (&parms);
-	/* while (1) */
-	/* { */
-	/* 	Host_Frame (0.1); */
-	/* } */
 
     oldtime = Sys_FloatTime () - 0.1;
     while (1)
     {
-// find time spent rendering last frame
+		// find time spent rendering last frame
         newtime = Sys_FloatTime ();
         time = newtime - oldtime;
 

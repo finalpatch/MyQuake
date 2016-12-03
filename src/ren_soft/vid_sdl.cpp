@@ -21,9 +21,9 @@ unsigned       d_8to24table[256];
 byte vid_current_palette[256*3];
 byte vid_rgb_buffer[BASEWIDTH*BASEHEIGHT*4];
 
-SDL_Window*   win;
-SDL_Renderer* ren;
-SDL_Texture*  tex;
+SDL_Window*   win = NULL;
+SDL_Renderer* ren = NULL;
+SDL_Texture*  tex = NULL;
 
 void VID_SetPalette (unsigned char *palette)
 {
@@ -38,8 +38,6 @@ void VID_ShiftPalette (unsigned char *palette)
 
 void VID_Init (unsigned char *palette)
 {
-    SDL_Init(SDL_INIT_VIDEO);
-
     if (SDL_CreateWindowAndRenderer(BASEWIDTH, BASEHEIGHT, 0, &win, &ren) < 0)
         exit(-1);
     tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, BASEWIDTH, BASEHEIGHT);
@@ -61,7 +59,12 @@ void VID_Init (unsigned char *palette)
 
 void VID_Shutdown (void)
 {
-    SDL_Quit();
+    if (tex)
+        SDL_DestroyTexture(tex);
+    if (ren)
+        SDL_DestroyRenderer(ren);
+    if (win)
+        SDL_DestroyWindow(win);
 }
 
 void VID_Update (vrect_t *rects)
