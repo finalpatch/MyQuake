@@ -1,5 +1,6 @@
 {
     "command": "mingw32-make",
+    "version": "0.1.0",
     "isShellCommand": true,
     "tasks": [
         {
@@ -19,6 +20,13 @@
                     "message": 5
                 }
             }
+        },
+        {
+            "taskName": "Run CMake",
+            "isBuildCommand": false,
+            "showOutput": "always",
+            "suppressTaskName": true,
+            "args": ["-C", "${workspaceRoot}/../build", "rebuild_cache"]
         }
     ]
 }
