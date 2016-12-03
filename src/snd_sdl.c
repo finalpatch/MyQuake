@@ -66,6 +66,7 @@ qboolean SNDDMA_Init(void)
     }
     SDL_PauseAudioDevice(dev, 0); /* unpause */
     Con_Printf("Sound initialized %d %d %d.\n", have.freq, have.format, have.channels);
+
 	return 1;
 }
 

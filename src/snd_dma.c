@@ -796,98 +796,10 @@ void S_Update(vec3_t origin, vec3_t forward, vec3_t right, vec3_t up)
 		
 		Con_Printf ("----(%i)----\n", total);
 	}
-
-// mix some sound
-	S_Update_();
-}
-
-void GetSoundtime(void)
-{
-	int		samplepos;
-	static	int		buffers;
-	static	int		oldsamplepos;
-	int		fullsamples;
-	
-	fullsamples = shm->samples / shm->channels;
-
-// it is possible to miscount buffers if it has wrapped twice between
-// calls to S_Update.  Oh well.
-#ifdef __sun__
-	soundtime = SNDDMA_GetSamples();
-#else
-	samplepos = SNDDMA_GetDMAPos();
-
-
-	if (samplepos < oldsamplepos)
-	{
-		buffers++;					// buffer wrapped
-		
-		if (paintedtime > 0x40000000)
-		{	// time to chop things off to avoid 32 bit limits
-			buffers = 0;
-			paintedtime = fullsamples;
-			S_StopAllSounds (true);
-		}
-	}
-	oldsamplepos = samplepos;
-
-	soundtime = buffers*fullsamples + samplepos/shm->channels;
-#endif
 }
 
 void S_ExtraUpdate (void)
 {
-	if (snd_noextraupdate.value)
-		return;		// don't pollute timings
-	S_Update_();
-}
-
-void S_Update_(void)
-{
-	unsigned        endtime;
-	int				samps;
-	
-	if (!sound_started || (snd_blocked > 0))
-		return;
-
-// Updates DMA time
-	GetSoundtime();
-
-// check to make sure that we haven't overshot
-	if (paintedtime < soundtime)
-	{
-		//Con_Printf ("S_Update_ : overflow\n");
-		paintedtime = soundtime;
-	}
-
-// mix ahead of current position
-	endtime = soundtime + _snd_mixahead.value * shm->speed;
-	samps = shm->samples >> (shm->channels-1);
-	if (endtime - soundtime > samps)
-		endtime = soundtime + samps;
-
-#if 0
-// if the buffer was lost or stopped, restore it and/or restart it
-	{
-		DWORD	dwStatus;
-
-		if (pDSBuf)
-		{
-			if (pDSBuf->lpVtbl->GetStatus (pDSBuf, &dwStatus) != DD_OK)
-				Con_Printf ("Couldn't get sound buffer status\n");
-			
-			if (dwStatus & DSBSTATUS_BUFFERLOST)
-				pDSBuf->lpVtbl->Restore (pDSBuf);
-			
-			if (!(dwStatus & DSBSTATUS_PLAYING))
-				pDSBuf->lpVtbl->Play(pDSBuf, 0, 0, DSBPLAY_LOOPING);
-		}
-	}
-#endif
-
-	S_PaintChannels (endtime);
-
-	SNDDMA_Submit ();
 }
 
 /*
