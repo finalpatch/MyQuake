@@ -249,8 +249,8 @@ typedef struct
 
 typedef struct
 {
-	char	*basedir;
-	char	*cachedir;		// for development over ISDN lines
+	const char	*basedir;
+	const char	*cachedir;		// for development over ISDN lines
 	int		argc;
 	char	**argv;
 	void	*membase;

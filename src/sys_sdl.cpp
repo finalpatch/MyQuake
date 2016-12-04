@@ -17,13 +17,17 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// sys_null.h -- null system driver to aid porting efforts
 
+extern "C"
+{
 #include "quakedef.h"
 #include "errno.h"
 #include <sys/time.h>
+}
 
 #include <SDL2/SDL.h>
+
+#include <chrono>
 
 /*
 ===============================================================================
@@ -152,7 +156,7 @@ void Sys_MakeCodeWriteable (unsigned long startaddr, unsigned long length)
 }
 
 
-void Sys_Error (char *error, ...)
+void Sys_Error (const char *error, ...)
 {
 	va_list         argptr;
 
@@ -181,19 +185,9 @@ void Sys_Quit (void)
 
 double Sys_FloatTime (void)
 {
-   struct timeval tp;
-   struct timezone tzp;
-   static int      secbase;
-
-   gettimeofday(&tp, &tzp);
-
-   if (!secbase)
-   {
-       secbase = tp.tv_sec;
-       return tp.tv_usec/1000000.0;
-   }
-
-   return (tp.tv_sec - secbase) + tp.tv_usec/1000000.0;
+	static auto timebase = std::chrono::steady_clock::now();
+	std::chrono::duration<double> seconds = std::chrono::steady_clock::now() - timebase;
+	return seconds.count();
 }
 
 char *Sys_ConsoleInput (void)
