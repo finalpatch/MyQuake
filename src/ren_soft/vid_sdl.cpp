@@ -20,12 +20,11 @@ byte  surfcache[8*1024*1024];
 unsigned short d_8to16table[256];
 unsigned       d_8to24table[256];
 
-uint32_t vid_current_palette[256];
-uint32_t vid_rgb_buffer[BASEWIDTH*BASEHEIGHT];
+static uint32_t vid_current_palette[256];
 
-SDL_Window*   win = NULL;
-SDL_Renderer* ren = NULL;
-SDL_Texture*  tex = NULL;
+static SDL_Window*   win = NULL;
+static SDL_Renderer* ren = NULL;
+static SDL_Texture*  tex = NULL;
 
 void VID_SetPalette (unsigned char *palette)
 {
@@ -76,9 +75,20 @@ void VID_Shutdown (void)
 
 void VID_Update (vrect_t *rects)
 {
-    for(int i = 0; i < BASEWIDTH*BASEHEIGHT; ++i)
-        vid_rgb_buffer[i] = vid_current_palette[vid_buffer[i]];
-    SDL_UpdateTexture(tex, nullptr, vid_rgb_buffer, BASEWIDTH*4);
+    byte* psrc = vid_buffer;
+    uint32_t* pdst;
+    int pitch;
+    if (0 == SDL_LockTexture(tex, nullptr, (void**)&pdst, &pitch))
+    {
+        pitch /= sizeof(uint32_t);
+        for(int row = 0; row < BASEHEIGHT; ++row)
+        {
+            for(int i = 0; i < BASEWIDTH; ++i)
+                pdst[i] = vid_current_palette[*psrc++];
+            pdst += pitch;
+        }
+        SDL_UnlockTexture(tex);
+    }
     SDL_RenderCopy(ren, tex, nullptr, nullptr);
     SDL_RenderPresent(ren);
 }
