@@ -106,7 +106,6 @@ void S_ClearPrecache (void);
 void S_BeginPrecaching (void);
 void S_EndPrecaching (void);
 void S_PaintChannels(int endtime);
-void S_InitPaintChannels (void);
 
 // picks a channel based on priorities, empty slots, number of channels
 channel_t *SND_PickChannel(int entnum, int entchannel);
