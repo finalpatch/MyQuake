@@ -4,6 +4,8 @@ extern "C"
 #include "d_local.h"
 }
 
+#include <cstdint>
+
 #include <SDL2/SDL.h>
 
 viddef_t	vid;				// global video state
@@ -18,8 +20,8 @@ byte  surfcache[8*1024*1024];
 unsigned short d_8to16table[256];
 unsigned       d_8to24table[256];
 
-byte vid_current_palette[256*3];
-byte vid_rgb_buffer[BASEWIDTH*BASEHEIGHT*4];
+uint32_t vid_current_palette[256];
+uint32_t vid_rgb_buffer[BASEWIDTH*BASEHEIGHT];
 
 SDL_Window*   win = NULL;
 SDL_Renderer* ren = NULL;
@@ -27,8 +29,13 @@ SDL_Texture*  tex = NULL;
 
 void VID_SetPalette (unsigned char *palette)
 {
-	if (palette != vid_current_palette)
-		Q_memcpy(vid_current_palette, palette, sizeof(vid_current_palette));
+    for(int i = 0; i < 256; ++i)
+    {
+        vid_current_palette[i] =  
+            uint32_t(palette[2]) | (uint32_t(palette[1]) << 8) |
+            (uint32_t(palette[0]) << 16) | 0xff000000;
+        palette += 3;
+    }
 }
 
 void VID_ShiftPalette (unsigned char *palette)
@@ -70,13 +77,7 @@ void VID_Shutdown (void)
 void VID_Update (vrect_t *rects)
 {
     for(int i = 0; i < BASEWIDTH*BASEHEIGHT; ++i)
-    {
-        byte* rgb = vid_current_palette + vid_buffer[i] * 3;
-        vid_rgb_buffer[i*4+0] = rgb[2];
-        vid_rgb_buffer[i*4+1] = rgb[1];
-        vid_rgb_buffer[i*4+2] = rgb[0];
-        vid_rgb_buffer[i*4+3] = 255;
-    }
+        vid_rgb_buffer[i] = vid_current_palette[vid_buffer[i]];
     SDL_UpdateTexture(tex, nullptr, vid_rgb_buffer, BASEWIDTH*4);
     SDL_RenderCopy(ren, tex, nullptr, nullptr);
     SDL_RenderPresent(ren);
