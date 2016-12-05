@@ -33,6 +33,7 @@ void SDLCALL render_audio (void *userdata, Uint8 * stream, int len)
 		shm->buffer = stream;
 		shm->samplepos += len/(shm->samplebits/8)/2;
 		S_PaintChannels (shm->samplepos);
+        shm->buffer = NULL;
 	}
 }
 

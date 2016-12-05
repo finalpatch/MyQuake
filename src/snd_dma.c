@@ -565,10 +565,10 @@ void S_ClearBuffer (void)
 {
 	int		clear;
 		
-	if (!sound_started || !shm || !shm->buffer)
-		return;
-
 	S_LockAudioDevice();
+
+	if (!sound_started || !shm || !shm->buffer)
+		goto done;
 
 	if (shm->samplebits == 8)
 		clear = 0x80;
@@ -577,6 +577,7 @@ void S_ClearBuffer (void)
 
 	Q_memset(shm->buffer, clear, shm->samples * shm->samplebits/8);
 
+done:
 	S_UnlockAudioDevice();
 }
 
