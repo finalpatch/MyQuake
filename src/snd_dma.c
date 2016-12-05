@@ -461,10 +461,12 @@ void S_StartSound(int entnum, int entchannel, sfx_t *sfx, vec3_t origin, float f
 
 	vol = fvol*255;
 
+	S_LockAudioDevice();
+
 // pick a channel to play on
 	target_chan = SND_PickChannel(entnum, entchannel);
 	if (!target_chan)
-		return;
+		goto done;
 		
 // spatialize
 	memset (target_chan, 0, sizeof(*target_chan));
@@ -476,14 +478,14 @@ void S_StartSound(int entnum, int entchannel, sfx_t *sfx, vec3_t origin, float f
 	SND_Spatialize(target_chan);
 
 	if (!target_chan->leftvol && !target_chan->rightvol)
-		return;		// not audible at all
+		goto done;	// not audible at all
 
 // new channel
 	sc = S_LoadSound (sfx);
 	if (!sc)
 	{
 		target_chan->sfx = NULL;
-		return;		// couldn't load the sound's data
+		goto done;	// couldn't load the sound's data
 	}
 
 	target_chan->sfx = sfx;
@@ -508,12 +510,15 @@ void S_StartSound(int entnum, int entchannel, sfx_t *sfx, vec3_t origin, float f
 		}
 		
 	}
+done:
+	S_UnlockAudioDevice();
 }
 
 void S_StopSound(int entnum, int entchannel)
 {
 	int i;
 
+	S_LockAudioDevice();
 	for (i=0 ; i<MAX_DYNAMIC_CHANNELS ; i++)
 	{
 		if (channels[i].entnum == entnum
@@ -521,9 +526,11 @@ void S_StopSound(int entnum, int entchannel)
 		{
 			channels[i].end = 0;
 			channels[i].sfx = NULL;
-			return;
+			goto done;
 		}
 	}
+done:
+	S_UnlockAudioDevice();
 }
 
 void S_StopAllSounds(qboolean clear)
@@ -532,6 +539,8 @@ void S_StopAllSounds(qboolean clear)
 
 	if (!sound_started)
 		return;
+
+	S_LockAudioDevice();
 
 	total_channels = MAX_DYNAMIC_CHANNELS + NUM_AMBIENTS;	// no statics
 
@@ -543,6 +552,8 @@ void S_StopAllSounds(qboolean clear)
 
 	if (clear)
 		S_ClearBuffer ();
+
+	S_UnlockAudioDevice();
 }
 
 void S_StopAllSoundsC (void)
@@ -557,12 +568,16 @@ void S_ClearBuffer (void)
 	if (!sound_started || !shm || !shm->buffer)
 		return;
 
+	S_LockAudioDevice();
+
 	if (shm->samplebits == 8)
 		clear = 0x80;
 	else
 		clear = 0;
 
 	Q_memset(shm->buffer, clear, shm->samples * shm->samplebits/8);
+
+	S_UnlockAudioDevice();
 }
 
 
@@ -574,15 +589,17 @@ S_StaticSound
 void S_StaticSound (sfx_t *sfx, vec3_t origin, float vol, float attenuation)
 {
 	channel_t	*ss;
-	sfxcache_t		*sc;
+	sfxcache_t	*sc;
 
 	if (!sfx)
 		return;
 
+	S_LockAudioDevice();
+
 	if (total_channels == MAX_CHANNELS)
 	{
 		Con_Printf ("total_channels == MAX_CHANNELS\n");
-		return;
+		goto done;
 	}
 
 	ss = &channels[total_channels];
@@ -590,12 +607,12 @@ void S_StaticSound (sfx_t *sfx, vec3_t origin, float vol, float attenuation)
 
 	sc = S_LoadSound (sfx);
 	if (!sc)
-		return;
+		goto done;
 
 	if (sc->loopstart == -1)
 	{
 		Con_Printf ("Sound %s not looped\n", sfx->name);
-		return;
+		goto done;
 	}
 	
 	ss->sfx = sfx;
@@ -605,6 +622,8 @@ void S_StaticSound (sfx_t *sfx, vec3_t origin, float vol, float attenuation)
     ss->end = paintedtime + sc->length;	
 	
 	SND_Spatialize (ss);
+done:
+	S_UnlockAudioDevice();
 }
 
 
@@ -682,6 +701,8 @@ void S_Update(vec3_t origin, vec3_t forward, vec3_t right, vec3_t up)
 	if (!sound_started || (snd_blocked > 0))
 		return;
 
+	S_LockAudioDevice();
+
 	VectorCopy(origin, listener_origin);
 	VectorCopy(forward, listener_forward);
 	VectorCopy(right, listener_right);
@@ -756,6 +777,8 @@ void S_Update(vec3_t origin, vec3_t forward, vec3_t right, vec3_t up)
 		
 		Con_Printf ("----(%i)----\n", total);
 	}
+
+	S_UnlockAudioDevice();
 }
 
 void S_ExtraUpdate (void)

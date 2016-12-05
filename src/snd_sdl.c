@@ -86,3 +86,13 @@ int SNDDMA_GetDMAPos(void)
 void SNDDMA_Submit(void)
 {
 }
+
+void S_LockAudioDevice()
+{
+    SDL_LockAudioDevice(dev);
+}
+
+void S_UnlockAudioDevice()
+{
+    SDL_UnlockAudioDevice(dev);
+}
