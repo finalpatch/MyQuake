@@ -44,18 +44,18 @@ void VID_ShiftPalette (unsigned char *palette)
 
 void VID_Init (unsigned char *palette)
 {
-    if (SDL_CreateWindowAndRenderer(BASEWIDTH, BASEHEIGHT, 0, &win, &ren) < 0)
-        exit(-1);
+    win = SDL_CreateWindow("Quake", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, BASEWIDTH, BASEHEIGHT, 0);
+    if (!win) exit(-1);
+    ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (!ren) exit(-1);
     tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, BASEWIDTH, BASEHEIGHT);
-    if (!tex)
-        exit(-1);
+    if (!tex) exit(-1);
 
 	vid.maxwarpwidth = vid.width = vid.conwidth = BASEWIDTH;
 	vid.maxwarpheight = vid.height = vid.conheight = BASEHEIGHT;
 	vid.aspect = 1.0;
 	vid.numpages = 1;
 	vid.colormap = host_colormap;
-	vid.fullbright = 256 - LittleLong (*((int *)vid.colormap + 2048));
 	vid.buffer = vid.conbuffer = vid_buffer;
 	vid.rowbytes = vid.conrowbytes = BASEWIDTH;
 
