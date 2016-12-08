@@ -63,8 +63,17 @@ qboolean SNDDMA_Init(void)
         Con_Printf("Failed to open audio: %s", SDL_GetError());
         return 0;
     }
+
+    shm->speed = have.freq;
+    shm->channels = have.channels; 
+    shm->samples = have.samples * shm->channels;
+
     SDL_PauseAudioDevice(dev, 0); /* unpause */
-    Con_Printf("Sound initialized %d %d %d.\n", have.freq, have.format, have.channels);
+    Con_Printf("Sound initialized:\n");
+    Con_Printf("  freq     %d\n", have.freq);
+    Con_Printf("  format   %d\n", have.format);
+    Con_Printf("  channels %d\n", have.channels);
+    Con_Printf("  samples  %d\n", have.samples);
 
 	return 1;
 }
