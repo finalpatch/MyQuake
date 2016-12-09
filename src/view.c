@@ -145,6 +145,7 @@ cvar_t	v_centerspeed = {"v_centerspeed","500"};
 
 void V_StartPitchDrift (void)
 {
+#if 0
 #if 1
 	if (cl.laststop == cl.time)
 	{
@@ -157,13 +158,16 @@ void V_StartPitchDrift (void)
 		cl.nodrift = false;
 		cl.driftmove = 0;
 	}
+#endif
 }
 
 void V_StopPitchDrift (void)
 {
+#if 0
 	cl.laststop = cl.time;
 	cl.nodrift = true;
 	cl.pitchvel = 0;
+#endif
 }
 
 /*
@@ -181,6 +185,7 @@ lookspring is non 0, or when
 */
 void V_DriftPitch (void)
 {
+#if 0
 	float		delta, move;
 
 	if (noclip_anglehack || !cl.onground || cls.demoplayback )
@@ -236,6 +241,7 @@ void V_DriftPitch (void)
 		}
 		cl.viewangles[PITCH] -= move;
 	}
+#endif
 }
 
 

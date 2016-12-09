@@ -240,18 +240,31 @@ static int MapKey( unsigned int sdlkey )
 void Sys_SendKeyEvents (void)
 {
 	SDL_Event event;
-	if (!SDL_PollEvent(&event))
-		return;
-	switch (event.type)
+	int btn;
+	while(SDL_PollEvent(&event))
 	{
-	case SDL_KEYUP:
-		Key_Event(MapKey(event.key.keysym.sym), false);
-		break;
-	case SDL_KEYDOWN:
-		Key_Event(MapKey(event.key.keysym.sym), true);
-		break;
-	default:
-		break;
+		switch (event.type)
+		{
+		case SDL_KEYDOWN:
+			Key_Event(MapKey(event.key.keysym.sym), true);
+			break;
+		case SDL_KEYUP:
+			Key_Event(MapKey(event.key.keysym.sym), false);
+			break;
+		case SDL_MOUSEBUTTONDOWN:
+			Key_Event(K_MOUSE1 - 1 + event.button.button, true);
+			break;
+		case SDL_MOUSEBUTTONUP:
+			Key_Event(K_MOUSE1 - 1 + event.button.button, false);
+			break;
+		case SDL_MOUSEWHEEL:
+			btn = (event.wheel.y < 0) ? K_MWHEELUP : K_MWHEELUP;
+			Key_Event(btn, true);
+			Key_Event(btn, false);
+			break;
+		default:
+			break;
+		}
 	}
 }
 
