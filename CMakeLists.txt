@@ -10,6 +10,7 @@ set_property(GLOBAL PROPERTY CXX_STANDARD_REQUIRED ON)
 
 # dependencies
 find_package(SDL2 REQUIRED)
+find_library(SDL2_MIXER_LIB SDL2_mixer)
 
 # global include path
 include_directories(
@@ -27,4 +28,5 @@ add_executable(${PROJECT_NAME} WIN32 ${SRC_LIST})
 
 target_link_libraries(${PROJECT_NAME}
   ren_soft
-  ${SDL2_LIBRARIES})
+  ${SDL2_LIBRARIES}
+  ${SDL2_MIXER_LIB})
