@@ -16,7 +16,7 @@ string(STRIP ${SDL2_LIBRARIES} SDL2_LIBRARIES)
 include_directories(
   src
   src/ren_soft
-  ${SDL2_INCLUDE_DIR})
+  /usr/local/include)
 
 # software renderer
 aux_source_directory(src/ren_soft REN_SOFT_SRC_LIST)
