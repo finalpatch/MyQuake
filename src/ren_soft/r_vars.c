@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // FIXME: make into one big structure, like cl or sv
 // FIXME: do separately for refresh engine and driver
 
-int	r_bmodelactive;
+int	r_bmodelactive = 0;
 
 #endif	// !id386
 

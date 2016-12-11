@@ -59,13 +59,16 @@ int CDAudio_Init(void)
 {
 	char filename[32];
 
-	Mix_Init(MIX_INIT_OGG);
-	Mix_OpenAudio(44100, AUDIO_S16, 2, 4096);
+	if (Mix_Init(MIX_INIT_OGG) != MIX_INIT_OGG)
+		Con_Printf("init ogg failed\n");
+	if (Mix_OpenAudio(44100, AUDIO_S16, 2, 4096) != 0)
+		Con_Printf("init mixer failed\n");
 
 	for (int i = 2; i < 12; ++i)
 	{
 		sprintf(filename, "id1/music/track%02d.ogg", i);
 		tracks[i] = Mix_LoadMUS(filename);
+		Con_Printf("loading track %s ... %s\n", filename, tracks[i] ? "done" : "failed");
 	}
 
 	Mix_VolumeMusic(MIX_MAX_VOLUME);

@@ -39,10 +39,10 @@ float	d_sdivzorigin, d_tdivzorigin, d_ziorigin;
 
 fixed16_t	sadjust, tadjust, bbextents, bbextentt;
 
-pixel_t			*cacheblock;
+pixel_t			*cacheblock = NULL;
 int				cachewidth;
-pixel_t			*d_viewbuffer;
-short			*d_pzbuffer;
+pixel_t			*d_viewbuffer = NULL;
+short			*d_pzbuffer = NULL;
 unsigned int	d_zrowbytes;
 unsigned int	d_zwidth;
 
