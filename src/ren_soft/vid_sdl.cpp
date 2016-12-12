@@ -1,12 +1,11 @@
+#include <cstdint>
+#include <SDL2/SDL.h>
+
 extern "C"
 {
 #include "quakedef.h"
 #include "d_local.h"
 }
-
-#include <cstdint>
-
-#include <SDL2/SDL.h>
 
 viddef_t	vid;				// global video state
 

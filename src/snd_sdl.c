@@ -18,8 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "quakedef.h"
 #include <SDL2/SDL_audio.h>
+#include "quakedef.h"
 
 SDL_AudioSpec want, have;
 SDL_AudioDeviceID dev = 0;
