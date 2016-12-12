@@ -22,8 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 
-//define	PASSAGES
-
 void		*colormap;
 vec3_t		viewlightvec;
 alight_t	r_viewlighting = {128, 192, viewlightvec};
@@ -138,9 +136,6 @@ cvar_t	r_aliastransbase = {"r_aliastransbase", "200"};
 cvar_t	r_aliastransadj = {"r_aliastransadj", "100"};
 
 extern cvar_t	scr_fov;
-
-void CreatePassages (void);
-void SetVisibilityByPassages (void);
 
 /*
 ==================
@@ -290,9 +285,6 @@ void R_NewMap (void)
 
 	r_dowarpold = false;
 	r_viewchanged = false;
-#ifdef PASSAGES
-CreatePassages ();
-#endif
 }
 
 
@@ -926,17 +918,7 @@ void R_RenderView_ (void)
 
 	R_SetupFrame ();
 
-#ifdef PASSAGES
-SetVisibilityByPassages ();
-#else
 	R_MarkLeaves ();	// done here so we know if we're in water
-#endif
-
-// make FDIV fast. This reduces timing precision after we've been running for a
-// while, so we don't do it globally.  This also sets chop mode, and we do it
-// here so that setup stuff like the refresh area calculations match what's
-// done in screen.c
-	Sys_LowFPPrecision ();
 
 	if (!cl_entities[0].model || !cl.worldmodel)
 		Sys_Error ("R_RenderView: NULL worldmodel");
@@ -992,9 +974,6 @@ SetVisibilityByPassages ();
 
 	if (r_reportedgeout.value && r_outofedges)
 		Con_Printf ("Short roughly %d edges\n", r_outofedges * 2 / 3);
-
-// back to high floating-point precision
-	Sys_HighFPPrecision ();
 }
 
 void R_RenderView (void)

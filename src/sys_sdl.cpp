@@ -148,11 +148,6 @@ SYSTEM IO
 ===============================================================================
 */
 
-void Sys_MakeCodeWriteable (unsigned long startaddr, unsigned long length)
-{
-}
-
-
 void Sys_Error (const char *error, ...)
 {
 	va_list         argptr;
@@ -263,14 +258,6 @@ void Sys_SendKeyEvents (void)
 			break;
 		}
 	}
-}
-
-void Sys_HighFPPrecision (void)
-{
-}
-
-void Sys_LowFPPrecision (void)
-{
 }
 
 //=============================================================================
