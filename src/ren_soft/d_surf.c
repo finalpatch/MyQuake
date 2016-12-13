@@ -31,27 +31,6 @@ surfcache_t                     *sc_rover, *sc_base;
 
 #define GUARDSIZE       4
 
-
-int     D_SurfaceCacheForRes (int width, int height)
-{
-	int             size, pix;
-
-	if (COM_CheckParm ("-surfcachesize"))
-	{
-		size = Q_atoi(com_argv[COM_CheckParm("-surfcachesize")+1]) * 1024;
-		return size;
-	}
-
-	size = SURFCACHE_SIZE_AT_320X200;
-
-	pix = width*height;
-	if (pix > 64000)
-		size += (pix-64000)*3;
-
-
-	return size;
-}
-
 void D_CheckCacheGuard (void)
 {
 	byte    *s;
