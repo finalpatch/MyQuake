@@ -16,9 +16,6 @@ byte  vid_buffer[BASEWIDTH*BASEHEIGHT];
 short zbuffer[BASEWIDTH*BASEHEIGHT];
 byte  surfcache[8*1024*1024];
 
-unsigned short d_8to16table[256];
-unsigned       d_8to24table[256];
-
 static uint32_t vid_current_palette[256];
 
 static SDL_Window*   win = NULL;

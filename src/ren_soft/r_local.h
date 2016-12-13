@@ -140,7 +140,6 @@ void R_DrawSurfaceBlock8 (void);
 texture_t *R_TextureAnimation (texture_t *base);
 
 void R_GenSkyTile (void *pdest);
-void R_GenSkyTile16 (void *pdest);
 void R_Surf8Patch (void);
 void R_Surf16Patch (void);
 void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags);
