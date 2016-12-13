@@ -22,6 +22,10 @@ include_directories(
 aux_source_directory(src/ren_soft REN_SOFT_SRC_LIST)
 add_library(ren_soft STATIC ${REN_SOFT_SRC_LIST})
 
+# gl renderer
+aux_source_directory(src/ren_gl REN_GL_SRC_LIST)
+add_library(ren_gl STATIC ${REN_GL_SRC_LIST})
+
 # main executable
 aux_source_directory(src SRC_LIST)
 add_executable(${PROJECT_NAME} WIN32 ${SRC_LIST})
