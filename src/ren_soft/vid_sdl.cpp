@@ -61,12 +61,9 @@ void VID_Init (unsigned char *palette)
 
 void VID_Shutdown (void)
 {
-    if (tex)
-        SDL_DestroyTexture(tex);
-    if (ren)
-        SDL_DestroyRenderer(ren);
-    if (win)
-        SDL_DestroyWindow(win);
+    SDL_DestroyTexture(tex);
+    SDL_DestroyRenderer(ren);
+    SDL_DestroyWindow(win);
 }
 
 void VID_Update (vrect_t *rects)

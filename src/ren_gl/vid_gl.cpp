@@ -13,7 +13,8 @@ viddef_t	vid;
 static uint32_t vid_current_palette[256];
 qboolean isDedicated = qfalse;
 
-static SDL_Window*   win = NULL;
+static SDL_Window* win = nullptr;
+static SDL_GLContext ctx = nullptr;
 
 void VID_SetPalette (unsigned char *palette)
 {
@@ -33,8 +34,17 @@ void VID_ShiftPalette (unsigned char *palette)
 
 void VID_Init (unsigned char *palette)
 {
-    win = SDL_CreateWindow("Quake", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, BASEWIDTH, BASEHEIGHT, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 32);
+
+    win = SDL_CreateWindow("Quake", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        BASEWIDTH, BASEHEIGHT, SDL_WINDOW_OPENGL);
     if (!win) exit(-1);
+
+    ctx = SDL_GL_CreateContext(win);
+    if (!ctx) exit(-1);
 
 	vid.maxwarpwidth = vid.width = vid.conwidth = BASEWIDTH;
 	vid.maxwarpheight = vid.height = vid.conheight = BASEHEIGHT;
@@ -47,12 +57,13 @@ void VID_Init (unsigned char *palette)
 
 void VID_Shutdown (void)
 {
-    if (win)
-        SDL_DestroyWindow(win);
+    SDL_GL_DeleteContext(ctx);
+    SDL_DestroyWindow(win);
 }
 
 void VID_Update (vrect_t *rects)
 {
+    SDL_GL_SwapWindow(win);
 }
 
 void D_BeginDirectRect (int x, int y, byte *pbitmap, int width, int height)

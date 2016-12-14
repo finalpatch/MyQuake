@@ -25,12 +25,13 @@ add_library(ren_soft STATIC ${REN_SOFT_SRC_LIST})
 # gl renderer
 aux_source_directory(src/ren_gl REN_GL_SRC_LIST)
 add_library(ren_gl STATIC ${REN_GL_SRC_LIST})
+target_link_libraries(ren_gl PUBLIC glbinding)
 
 # main executable
 aux_source_directory(src SRC_LIST)
 add_executable(${PROJECT_NAME} WIN32 ${SRC_LIST})
 
 target_link_libraries(${PROJECT_NAME}
-  ren_soft
+  ren_gl
   ${SDL2_LIBRARIES}
   ${SDL2_MIXER_LIB})
