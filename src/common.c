@@ -1335,7 +1335,7 @@ Finds the file in the search path.
 Sets com_filesize and one of handle or file
 ===========
 */
-int COM_FindFile (char *filename, int *handle, FILE **file)
+int COM_FindFile (const char *filename, int *handle, FILE **file)
 {
 	searchpath_t    *search;
 	char            netpath[MAX_OSPATH];
@@ -1455,7 +1455,7 @@ returns a handle and a length
 it may actually be inside a pak file
 ===========
 */
-int COM_OpenFile (char *filename, int *handle)
+int COM_OpenFile (const char *filename, int *handle)
 {
 	return COM_FindFile (filename, handle, NULL);
 }

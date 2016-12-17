@@ -2,13 +2,19 @@ extern "C"
 {
 #include "quakedef.h"
 
-qpic_t *draw_disc;
+byte		*draw_chars;				// 8*8 graphic characters
+qpic_t		*draw_disc;
+qpic_t		*draw_backtile;
 }
 
 void Draw_Init (void)
 {
+    static char conchars[] = "conchars";
     static char disc[] = "disc";
+    static char backtile[] = "backtile";
+    draw_chars = reinterpret_cast<byte*>(W_GetLumpName (conchars));
     draw_disc = reinterpret_cast<qpic_t*>(W_GetLumpName (disc));
+    draw_backtile = reinterpret_cast<qpic_t*>(W_GetLumpName (backtile));
 }
 void Draw_Character (int x, int y, int num)
 {

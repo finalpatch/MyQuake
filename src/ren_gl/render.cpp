@@ -1,166 +1,56 @@
 #include <SDL2/SDL.h>
-#include <glbinding/gl33core/gl.h>
-#include <vector>
-#include <string>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+
 #include <fstream>
 #include <sstream>
+#include <memory>
+
+#include "glhelper.h"
+#include "quakeutils.h"
 
 extern "C"
 {
-#include "quakedef.h"
-
 refdef_t r_refdef;
 vec3_t	r_origin, vpn, vright, vup;
-
-texture_s *r_notexture_mip;
-qboolean r_cache_thrash;
+texture_s* r_notexture_mip = nullptr;
+qboolean r_cache_thrash = qfalse;
 }
 
-using namespace gl33core;
-
-static std::string readFile(const std::string& filename)
-{
-    std::ifstream f(filename);
-    std::stringstream ss;
-    ss << f.rdbuf();
-    return ss.str();
-}
-
-class GLObject
-{
-protected:
-    GLuint _handle;
-
-public:
-    virtual ~GLObject() {}
-
-    GLuint handle() const
-    {
-        return _handle;
-    }
+static float r_avertexnormals[][3] = {
+    #include "anorms.h"
 };
 
-class GLBuffer : public GLObject
+struct TransformBlock
 {
-public:
-    GLBuffer(void* data, size_t size, size_t offset, BufferStorageMask flags)
-    {
-        glGenBuffers(1, &_handle);
-        bind(GL_COPY_WRITE_BUFFER);
-        glBufferStorage(GL_COPY_WRITE_BUFFER, size, data, flags);
-    }
-    ~GLBuffer() override
-    {
-        glDeleteBuffers(1, &_handle);
-    }
-    void Update(void* data, size_t size, size_t offset)
-    {
-        bind(GL_COPY_WRITE_BUFFER);
-        glBufferSubData(GL_COPY_WRITE_BUFFER, offset, size, data);
-    }
-    void bind(GLenum target)
-    {
-        glBindBuffer(target, _handle);
-    }
-    void bind(GLenum target, GLuint index)
-    {
-        glBindBufferBase(target, index, _handle);
-    }
+    glm::mat4 projection;
+    glm::mat4 modelview;
 };
+TransformBlock transform;
 
-class Shader : public GLObject
-{
-public:
-    Shader(GLenum type, const std::string& filename)
-    {
-        auto src = readFile(filename);
-        if (!src.empty())
-        {
-            _handle = glCreateShader(type);
-            const char* srcList[] = {src.c_str()};
-            glShaderSource(_handle, 1, srcList, nullptr);
-            glCompileShader(_handle);
-            GLint compilationOk;
-            glGetShaderiv(_handle, GL_COMPILE_STATUS, &compilationOk);
-            if (!compilationOk)
-            {
-                Con_Printf("shader compilation failed\n");
-                GLint errLength;
-                glGetShaderiv(_handle, GL_INFO_LOG_LENGTH, &errLength);
-                std::vector<char> errLog(errLength+1, '\0');
-                glGetShaderInfoLog(_handle, errLength, &errLength, errLog.data());
-                Con_Printf(errLog.data());
-            }
-        }
-    }
-    ~Shader() override
-    {
-        glDeleteShader(_handle);
-    }
-};
-
-class RenderProgram : public GLObject
-{
-public:
-    RenderProgram(const std::vector<Shader>& shaders)
-    {
-        _handle = glCreateProgram();
-        for(const auto& shader: shaders)
-        {
-            glAttachShader(_handle, shader.handle());
-        }
-    }
-    ~RenderProgram() override
-    {
-        glDeleteProgram(_handle);
-    }
-    void use() const
-    {
-        glUseProgram(_handle);
-    }
-    void setUniformBlock(const std::string& name, GLBuffer& buf)
-    {
-        GLuint idx = glGetUniformBlockIndex(_handle, name.c_str());
-        if (idx != GL_INVALID_INDEX)
-            buf.bind(GL_UNIFORM_BUFFER, idx);
-        else
-            Con_Printf("invalid uniform name");
-    }
-};
-
-class VertexArray : public GLObject
-{
-public:
-    VertexArray()
-    {
-        glGenVertexArrays(1, &_handle);
-        bind();
-    }
-    ~VertexArray() override
-    {
-        glDeleteVertexArrays(1, &_handle);
-    }
-    void enableAttrib(GLuint index)
-    {
-        glEnableVertexAttribArray(index);
-    }
-    void setVertexBuffer(GLBuffer& buf, GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride)
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, buf.handle());
-        glVertexAttribPointer(index, size, type, normalized, stride, nullptr);
-    }
-    void setIndexBuffer(GLBuffer& buf)
-    {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buf.handle());
-    }
-    void bind()
-    {
-        glBindVertexArray(_handle);
-    }
-};
+std::unique_ptr<RenderProgram> prog;
+std::unique_ptr<GLBuffer> uniformBuffer;
+std::unique_ptr<VertexArray> vao;
+std::unique_ptr<GLBuffer> vtxBuf;
+std::unique_ptr<GLBuffer> nrmBuf;
+std::unique_ptr<GLBuffer> idxBuf;
 
 void R_Init (void)
 {
+    glbinding::Binding::initialize();
+    
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    std::vector<Shader> shaders;
+    shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs.glsl"));
+    shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps.glsl"));
+    prog = std::make_unique<RenderProgram>(shaders);
+    uniformBuffer = std::make_unique<GLBuffer>(nullptr, sizeof(TransformBlock), GL_DYNAMIC_STORAGE_BIT);
+    prog->setUniformBlock("TransformBlock", *uniformBuffer);
 }
 void R_InitTextures (void)
 {
@@ -172,7 +62,23 @@ void R_InitEfrags (void)
 }
 void R_RenderView (void)
 {
+    GLfloat w = 1280;
+    GLfloat h = 720;
 
+    static GLfloat bgColor[] = {0.27, 0.53, 0.71, 1.0};
+    glViewport(0, 0, w, h);
+    glClearBufferfv(GL_COLOR, 0, bgColor);
+    glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
+    prog->use();
+    
+    transform.projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 500.0f);
+    transform.modelview = glm::lookAt(
+        glm::vec3{0, 0, 40},
+        glm::vec3{0, 0, 0},
+        glm::vec3{0, 1, 0});
+    uniformBuffer->update(&transform, sizeof(transform), 0);
+    vao->bind();
+    glDrawElements(GL_TRIANGLES, idxBuf->size() / sizeof(GLushort), GL_UNSIGNED_SHORT, nullptr);
 }
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
 {
@@ -194,9 +100,46 @@ void R_RemoveEfrags (entity_t *ent)
 
 void R_NewMap (void)
 {
+    auto model_desc = cl.model_precache[107];
+    auto alias_model_header = (aliashdr_t *)Mod_Extradata (model_desc);
+	auto alias_model = (mdl_t *)((byte *)alias_model_header + alias_model_header->model);
+	auto compressed_verts = (trivertx_t *)((byte *)alias_model_header + alias_model_header->frames[0].frame);
+    auto triangles = (mtriangle_t *)((byte *)alias_model_header + alias_model_header->triangles);
 
+    std::vector<GLfloat> vertices(alias_model->numverts * 3);
+    std::vector<GLfloat> normals(alias_model->numverts * 3);
+    for(int i = 0; i < alias_model->numverts; ++i)
+    {
+        vertices[i * 3 + 0] = compressed_verts[i].v[0] * alias_model->scale[0] + alias_model->scale_origin[0];
+        vertices[i * 3 + 1] = compressed_verts[i].v[2] * alias_model->scale[2] + alias_model->scale_origin[2];
+        vertices[i * 3 + 2] = -(compressed_verts[i].v[1] * alias_model->scale[1] + alias_model->scale_origin[1]);
+        normals[i * 3 + 0] = r_avertexnormals[compressed_verts[i].lightnormalindex][0];
+        normals[i * 3 + 1] = r_avertexnormals[compressed_verts[i].lightnormalindex][2];
+        normals[i * 3 + 2] = -r_avertexnormals[compressed_verts[i].lightnormalindex][1];
+    }
+    std::vector<GLushort> indexes(alias_model->numtris * 3);
+    for(int i = 0; i < alias_model->numtris; ++i)
+    {
+        indexes[i * 3 + 0] = triangles[i].vertindex[0];
+        indexes[i * 3 + 1] = triangles[i].vertindex[1];
+        indexes[i * 3 + 2] = triangles[i].vertindex[2];
+    }
+    vtxBuf = std::make_unique<GLBuffer>(vertices.data(), alias_model->numverts * 3 * sizeof(GLfloat));
+    nrmBuf = std::make_unique<GLBuffer>(normals.data(), alias_model->numverts * 3 * sizeof(GLfloat));
+    idxBuf = std::make_unique<GLBuffer>(indexes.data(), alias_model->numtris * 3 * sizeof(short));
+
+    vao = std::make_unique<VertexArray>();
+    
+    vao->enableAttrib(0);
+    vao->format(0, 3, GL_FLOAT, GL_FALSE);
+    vao->vertexBuffer(0, *vtxBuf, 3 * sizeof(GLfloat));
+    
+    vao->enableAttrib(1);
+    vao->format(1, 3, GL_FLOAT, GL_TRUE);
+    vao->vertexBuffer(1, *nrmBuf, 3 * sizeof(GLfloat));
+
+    vao->indexBuffer(*idxBuf);
 }
-
 
 void R_ParseParticleEffect (void)
 {
