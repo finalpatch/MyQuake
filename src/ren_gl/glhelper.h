@@ -1,10 +1,8 @@
 #pragma once
 
 #include <glbinding/gl45core/gl.h>
-#include <glbinding/Binding.h>
 
-#include <vector>
-#include <string>
+#include "glcommon.h"
 
 using namespace gl45core;
 
@@ -20,6 +18,8 @@ public:
         other._handle = 0;
     }
 
+    GLObject(const GLObject&) = delete;
+
     virtual ~GLObject() {}
 
     GLuint handle() const
@@ -34,7 +34,7 @@ class GLBuffer : public GLObject
 {
     size_t _size;
 public:
-    GLBuffer(void* data, size_t size, BufferStorageMask flags = GL_NONE_BIT)
+    GLBuffer(const void* data, size_t size, BufferStorageMask flags = GL_NONE_BIT)
         : _size(size)
     {
         glCreateBuffers(1, &_handle);
@@ -53,9 +53,14 @@ public:
     {
         return _size;
     }
-    void update(void* data, size_t size, size_t offset)
+    void update(const void* data, size_t size, size_t offset = 0)
     {
         glNamedBufferSubData(_handle, offset, size, data);
+    }
+    template <typename T>
+    void update(const T* data)
+    {
+        update(data, sizeof(T), 0);
     }
     void bind(GLenum target)
     {
