@@ -41,7 +41,10 @@ void R_RenderView (void)
     glClearBufferfv(GL_COLOR, 0, bgColor);
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
 
-    modelRenderer->render(0, 0, {}, {});
+    static int f = 0;
+    modelRenderer->render(f++, 0, {}, {});
+    if (f == 143 * 5)
+        f = 0;
 }
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
