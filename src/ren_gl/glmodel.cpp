@@ -89,9 +89,7 @@ ModelRenderer::ModelRenderer(const model_s* quakeModel)
         if (modelHeader->frames[frameId].type == ALIAS_SINGLE)
         {
     	    auto scaledVertices = (const trivertx_t*)((byte *)modelHeader + modelHeader->frames[frameId].frame);
-            auto triangles = (const mtriangle_t*)((byte *)modelHeader + modelHeader->triangles);
-            uint32_t vertexOffset = vertices.size() / 3;
-            uint32_t indexOffset = indexes.size();
+            VertexRange vertexRange = {uint32_t(vertices.size() / 3), 0.0f};
             for(int i = 0; i < modelDesc->numverts; ++i)
             {
                 vertices.push_back(scaledVertices[i].v[0] * modelDesc->scale[0] + modelDesc->scale_origin[0]);
@@ -101,18 +99,20 @@ ModelRenderer::ModelRenderer(const model_s* quakeModel)
                 normals.push_back(r_avertexnormals[scaledVertices[i].lightnormalindex][2]);
                 normals.push_back(-r_avertexnormals[scaledVertices[i].lightnormalindex][1]);
             }
-            for(int i = 0; i < modelDesc->numtris; ++i)
-            {
-                indexes.push_back(triangles[i].vertindex[0] + vertexOffset);
-                indexes.push_back(triangles[i].vertindex[1] + vertexOffset);
-                indexes.push_back(triangles[i].vertindex[2] + vertexOffset);
-            }
-            _frames.push_back(std::make_unique<SingleModelFrame>(VertexRange{indexOffset, uint32_t(indexes.size() - indexOffset), 0.0f}, modelHeader->frames[frameId].name));
+            _frames.push_back(std::make_unique<SingleModelFrame>(vertexRange, modelHeader->frames[frameId].name));
         }
         else
         {
-            _frames.push_back(std::make_unique<SingleModelFrame>(VertexRange{0, 0, 0.0f}, ""));
+            _frames.push_back(std::make_unique<SingleModelFrame>(VertexRange{0, 0.0f}, ""));
         }
+    }
+
+    auto triangles = (const mtriangle_t*)((byte *)modelHeader + modelHeader->triangles);
+    for(int i = 0; i < modelDesc->numtris; ++i)
+    {
+        indexes.push_back(triangles[i].vertindex[0]);
+        indexes.push_back(triangles[i].vertindex[1]);
+        indexes.push_back(triangles[i].vertindex[2]);
     }
 
     _vtxBuf = std::make_unique<GLBuffer>(vertices.data(), vertices.size() * sizeof(GLfloat));
@@ -143,7 +143,5 @@ void ModelRenderer::render(int frameId, float syncbase, const float* origin, con
     _vao->bind();
     frameId /= 5;
     auto vertexRange = _frames[frameId]->getVertexRange(syncbase);
-    glDrawElements(GL_TRIANGLES, vertexRange.count, GL_UNSIGNED_SHORT,
-        reinterpret_cast<const void*>(vertexRange.offset*sizeof(GLushort)));
-    printf("%d: %s\n", frameId, _frames[frameId]->getName().c_str());
+    glDrawElementsBaseVertex(GL_TRIANGLES, _idxBuf->size() / sizeof(GLushort), GL_UNSIGNED_SHORT, nullptr, vertexRange.offset);
 }

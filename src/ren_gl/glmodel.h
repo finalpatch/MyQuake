@@ -7,7 +7,6 @@ struct model_s;
 struct VertexRange
 {
     uint32_t offset;
-    uint32_t count;
     float timestamp;
 };
 
