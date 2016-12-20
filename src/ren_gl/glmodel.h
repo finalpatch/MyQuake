@@ -13,7 +13,7 @@ struct VertexRange
 struct ModelFrame
 {
     virtual ~ModelFrame() {}
-    virtual VertexRange getVertexRange(float syncbase) = 0;
+    virtual uint32_t getVertexOffset(float time) = 0;
     virtual const std::string& getName() const  = 0;
 };
 
@@ -24,7 +24,7 @@ public:
         _vertexRange(vertexRange),
         _name(name)
     {}
-    VertexRange getVertexRange(float syncbase) override { return _vertexRange; }
+    uint32_t getVertexOffset(float time) override { return _vertexRange.offset; }
     const std::string& getName() const override { return _name; }
 private:
     VertexRange _vertexRange;
@@ -34,11 +34,13 @@ private:
 class GroupedModelFrame : public ModelFrame
 {
 public:
-    addSubFrame(const VertexRange& vertexRange);
-    VertexRange getVertexRange(float syncbase) override;
-    const std::string& getName() const override;
+    GroupedModelFrame(const char* name);
+    void addSubFrame(const VertexRange& vertexRange);
+    uint32_t getVertexOffset(float time) override;
+    const std::string& getName() const override  { return _name; }
 private:
     std::vector<VertexRange> _subFrames;
+    std::string _name;
 };
 
 class ModelRenderer
@@ -47,7 +49,7 @@ public:
     ModelRenderer(const model_s* quakeModel);
     virtual ~ModelRenderer();
 
-    void render(int frameId, float syncbase, const float* origin, const float* angles);
+    void render(int frameId, float time, const float* origin, const float* angles);
 
 private:
     std::unique_ptr<VertexArray>   _vao;    // buffer setup

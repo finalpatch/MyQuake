@@ -1,5 +1,7 @@
 #include "glmodel.h"
 
+#include <algorithm>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -75,6 +77,20 @@ private:
     std::unique_ptr<GLBuffer>      _ufmBuf;
 };
 
+static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices,
+    std::vector<GLfloat>& vertices, std::vector<GLfloat>& normals)
+{
+    for(int i = 0; i < modelDesc->numverts; ++i)
+    {
+        vertices.push_back(scaledVertices[i].v[0] * modelDesc->scale[0] + modelDesc->scale_origin[0]);
+        vertices.push_back(scaledVertices[i].v[2] * modelDesc->scale[2] + modelDesc->scale_origin[2]);
+        vertices.push_back(-(scaledVertices[i].v[1] * modelDesc->scale[1] + modelDesc->scale_origin[1]));
+        normals.push_back(r_avertexnormals[scaledVertices[i].lightnormalindex][0]);
+        normals.push_back(r_avertexnormals[scaledVertices[i].lightnormalindex][2]);
+        normals.push_back(-r_avertexnormals[scaledVertices[i].lightnormalindex][1]);
+    }
+}
+
 ModelRenderer::ModelRenderer(const model_s* quakeModel)
 {
     auto modelHeader = (const aliashdr_t*)Mod_Extradata(const_cast<model_s*>(quakeModel));
@@ -88,22 +104,27 @@ ModelRenderer::ModelRenderer(const model_s* quakeModel)
     {
         if (modelHeader->frames[frameId].type == ALIAS_SINGLE)
         {
-    	    auto scaledVertices = (const trivertx_t*)((byte *)modelHeader + modelHeader->frames[frameId].frame);
+    	    auto scaledVertices = (const trivertx_t*)((byte*)modelHeader + modelHeader->frames[frameId].frame);
             VertexRange vertexRange = {uint32_t(vertices.size() / 3), 0.0f};
-            for(int i = 0; i < modelDesc->numverts; ++i)
-            {
-                vertices.push_back(scaledVertices[i].v[0] * modelDesc->scale[0] + modelDesc->scale_origin[0]);
-                vertices.push_back(scaledVertices[i].v[2] * modelDesc->scale[2] + modelDesc->scale_origin[2]);
-                vertices.push_back(-(scaledVertices[i].v[1] * modelDesc->scale[1] + modelDesc->scale_origin[1]));
-                normals.push_back(r_avertexnormals[scaledVertices[i].lightnormalindex][0]);
-                normals.push_back(r_avertexnormals[scaledVertices[i].lightnormalindex][2]);
-                normals.push_back(-r_avertexnormals[scaledVertices[i].lightnormalindex][1]);
-            }
+            addVertices(modelDesc, scaledVertices, vertices, normals);
             _frames.push_back(std::make_unique<SingleModelFrame>(vertexRange, modelHeader->frames[frameId].name));
         }
         else
         {
-            _frames.push_back(std::make_unique<SingleModelFrame>(VertexRange{0, 0.0f}, ""));
+            auto groupedFrame = std::make_unique<GroupedModelFrame>(modelHeader->frames[frameId].name);
+
+            auto group = (const maliasgroup_t*)((byte*)modelHeader + modelHeader->frames[frameId].frame);
+            auto intervals = (const float*)((byte*)modelHeader + group->intervals);
+            auto numframes = group->numframes;
+
+            for (int i = 0; i < numframes; ++i)
+            {
+                auto scaledVertices = (const trivertx_t*)((byte*)modelHeader + group->frames[i].frame);
+                VertexRange vertexRange = {uint32_t(vertices.size() / 3), intervals[i]};
+                addVertices(modelDesc, scaledVertices, vertices, normals);
+                groupedFrame->addSubFrame(vertexRange);
+            }
+            _frames.push_back(std::move(groupedFrame));
         }
     }
 
@@ -136,12 +157,34 @@ ModelRenderer::~ModelRenderer()
 {
 }
 
-void ModelRenderer::render(int frameId, float syncbase, const float* origin, const float* angles)
+void ModelRenderer::render(int frameId, float time, const float* origin, const float* angles)
 {
     ModelRenderProgram::setup();
     ModelRenderProgram::use();
     _vao->bind();
     frameId /= 5;
-    auto vertexRange = _frames[frameId]->getVertexRange(syncbase);
-    glDrawElementsBaseVertex(GL_TRIANGLES, _idxBuf->size() / sizeof(GLushort), GL_UNSIGNED_SHORT, nullptr, vertexRange.offset);
+    auto offset = _frames[1]->getVertexOffset(time);
+    glDrawElementsBaseVertex(GL_TRIANGLES, _idxBuf->size() / sizeof(GLushort), GL_UNSIGNED_SHORT, nullptr, offset);
+}
+
+// *******************
+
+GroupedModelFrame::GroupedModelFrame(const char* name) : _name(name)
+{
+}
+
+void GroupedModelFrame::addSubFrame(const VertexRange& vertexRange)
+{
+    _subFrames.push_back(vertexRange);
+}
+
+uint32_t GroupedModelFrame::getVertexOffset(float time)
+{
+    auto fullinterval = _subFrames.back().timestamp;
+    auto targettime = time - ((int)(time / fullinterval)) * fullinterval;
+    auto vertexRange = std::upper_bound(_subFrames.begin(), _subFrames.end(), targettime,
+        [](float t, const VertexRange& r) {
+            return t < r.timestamp;
+        });
+    return vertexRange->offset;
 }

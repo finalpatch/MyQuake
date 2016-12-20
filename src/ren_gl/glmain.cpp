@@ -1,5 +1,7 @@
 #include <glbinding/Binding.h>
 
+#include <unordered_map>
+
 #include "glmodel.h"
 
 extern "C"
@@ -12,11 +14,12 @@ texture_s* r_notexture_mip = nullptr;
 qboolean r_cache_thrash = qfalse;
 }
 
-std::unique_ptr<ModelRenderer> modelRenderer;
+//std::unique_ptr<ModelRenderer> modelRenderer;
+std::unordered_map<model_t*, std::unique_ptr<ModelRenderer>> modelRenderers;
 
 void R_Init (void)
 {
-    glbinding::Binding::initialize();    
+    glbinding::Binding::initialize();
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 }
@@ -42,9 +45,8 @@ void R_RenderView (void)
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
 
     static int f = 0;
-    modelRenderer->render(f++, 0, {}, {});
-    if (f == 143 * 5)
-        f = 0;
+    modelRenderers[cl.model_precache[133]]->render(f++, cl.time, {}, {});
+    //modelRenderer->render(f++, 0, {}, {});
 }
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
@@ -69,8 +71,16 @@ void R_RemoveEfrags (entity_t *ent)
 
 void R_NewMap (void)
 {
-    auto playerModel = cl.model_precache[107];
-    modelRenderer = std::make_unique<ModelRenderer>(playerModel);
+    modelRenderers.clear();
+
+    for (int i = 0; i < MAX_MODELS; ++i)
+    {
+        auto model = cl.model_precache[i];
+        if (model != nullptr && model->type == mod_alias)
+            modelRenderers.emplace(model, std::make_unique<ModelRenderer>(model));
+    }
+    // auto playerModel = cl.model_precache[107];
+    // modelRenderer = std::make_unique<ModelRenderer>(playerModel);
 }
 
 void R_ParseParticleEffect (void)
