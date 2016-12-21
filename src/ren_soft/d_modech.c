@@ -38,10 +38,7 @@ void D_ViewChanged (void)
 {
 	int rowbytes;
 
-	if (r_dowarp)
-		rowbytes = WARP_WIDTH;
-	else
-		rowbytes = vid.rowbytes;
+	rowbytes = vid.rowbytes;
 
 	scale_for_mip = xscale;
 	if (yscale > xscale)

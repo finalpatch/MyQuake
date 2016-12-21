@@ -14,7 +14,6 @@ texture_s* r_notexture_mip = nullptr;
 qboolean r_cache_thrash = qfalse;
 }
 
-//std::unique_ptr<ModelRenderer> modelRenderer;
 std::unordered_map<model_t*, std::unique_ptr<ModelRenderer>> modelRenderers;
 
 void R_Init (void)
@@ -36,17 +35,13 @@ void R_InitEfrags (void)
 
 void R_RenderView (void)
 {
-    GLfloat w = 1280;
-    GLfloat h = 720;
-
     static GLfloat bgColor[] = {0.27, 0.53, 0.71, 1.0};
-    glViewport(0, 0, w, h);
+    glViewport(0, 0, vid.width, vid.height);
     glClearBufferfv(GL_COLOR, 0, bgColor);
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
 
     static int f = 0;
     modelRenderers[cl.model_precache[133]]->render(f++, cl.time, {}, {});
-    //modelRenderer->render(f++, 0, {}, {});
 }
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
@@ -79,8 +74,6 @@ void R_NewMap (void)
         if (model != nullptr && model->type == mod_alias)
             modelRenderers.emplace(model, std::make_unique<ModelRenderer>(model));
     }
-    // auto playerModel = cl.model_precache[107];
-    // modelRenderer = std::make_unique<ModelRenderer>(playerModel);
 }
 
 void R_ParseParticleEffect (void)

@@ -33,11 +33,8 @@ public:
         getInstance()._prog->use();
     }
 
-    static void setup()
+    static void setup(float w, float h)
     {
-        GLfloat w = 1280;
-        GLfloat h = 720;
-
         static GLfloat rotation = 0;
 
         auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 500.0f);
@@ -159,7 +156,7 @@ ModelRenderer::~ModelRenderer()
 
 void ModelRenderer::render(int frameId, float time, const float* origin, const float* angles)
 {
-    ModelRenderProgram::setup();
+    ModelRenderProgram::setup(vid.width, vid.height);
     ModelRenderProgram::use();
     _vao->bind();
     frameId /= 5;

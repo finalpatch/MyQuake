@@ -255,6 +255,17 @@ void Sys_SendKeyEvents (void)
 			Key_Event(btn, true);
 			Key_Event(btn, false);
 			break;
+		case SDL_WINDOWEVENT:
+			if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+			{
+				vrect_t rc = {0, 0, event.window.data1, event.window.data2};
+				VID_Resize(rc.width, rc.height);
+				R_ViewChanged(&rc, 0, 1.0f);
+			}
+			break;
+		case SDL_QUIT:
+			exit(0);
+			break;
 		default:
 			break;
 		}
