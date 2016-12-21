@@ -33,23 +33,12 @@ public:
         getInstance()._prog->use();
     }
 
-    static void setup(float w, float h)
+    static void setup(float w, float h, const glm::mat4& modelview)
     {
-        static GLfloat rotation = 0;
-
-        auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 500.0f);
-        auto modelview = glm::lookAt(
-            glm::vec3{0, 0, 60},
-            glm::vec3{0, 0, 0},
-            glm::vec3{0, 1, 0});
-        
-        modelview = glm::rotate(modelview, glm::radians(rotation), glm::vec3(0, 1, 0));
-        rotation += 1.0f;
-
+        auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 5000.0f);
         UniformBlock uniformBlock;
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
         memcpy(uniformBlock.modelview, glm::value_ptr(modelview), sizeof(uniformBlock.modelview));
-
         getInstance()._ufmBuf->update(&uniformBlock);
     }
 private:
@@ -156,11 +145,24 @@ ModelRenderer::~ModelRenderer()
 
 void ModelRenderer::render(int frameId, float time, const float* origin, const float* angles)
 {
-    ModelRenderProgram::setup(vid.width, vid.height);
+    vec3_t eyefwd, eyeright, eyeup;
+    AngleVectors(r_refdef.viewangles, eyefwd, eyeright, eyeup);
+    glm::vec3 eyePos(r_refdef.vieworg[0], r_refdef.vieworg[2], -r_refdef.vieworg[1]);
+    glm::vec3 pos(origin[0], origin[2], -origin[1]);
+    glm::mat4 modelview = 
+         glm::lookAt(
+            glm::vec3{-eyefwd[0], -eyefwd[2], eyefwd[1]},
+            glm::vec3{0, 0, 0},
+            glm::vec3{eyeup[0], eyeup[2], -eyeup[1]})
+        * glm::translate(glm::mat4(), pos - eyePos)
+        * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1})
+        * glm::rotate(glm::mat4(), glm::radians(angles[1]), {0, 1, 0})
+        * glm::rotate(glm::mat4(), glm::radians(angles[0]), {1, 0, 0});
+
+    ModelRenderProgram::setup(vid.width, vid.height, modelview);
     ModelRenderProgram::use();
     _vao->bind();
-    frameId /= 5;
-    auto offset = _frames[1]->getVertexOffset(time);
+    auto offset = _frames[frameId]->getVertexOffset(time);
     glDrawElementsBaseVertex(GL_TRIANGLES, _idxBuf->size() / sizeof(GLushort), GL_UNSIGNED_SHORT, nullptr, offset);
 }
 

@@ -40,8 +40,36 @@ void R_RenderView (void)
     glClearBufferfv(GL_COLOR, 0, bgColor);
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
 
-    static int f = 0;
-    modelRenderers[cl.model_precache[133]]->render(f++, cl.time, {}, {});
+    for (int i = 0; i < cl_numvisedicts; ++i)
+    {
+        auto currentEntity = cl_visedicts[i];
+        if (currentEntity == &cl_entities[cl.viewentity])
+            continue;
+		switch (currentEntity->model->type)
+		{
+		case mod_sprite:
+            break;
+		case mod_alias:
+            {
+                auto model = currentEntity->model;
+                auto& modelRenderer = modelRenderers[model];
+                if (modelRenderer)
+                {
+                    modelRenderer->render(
+                        currentEntity->frame,
+                        cl.time + currentEntity->syncbase,
+                        currentEntity->origin,
+                        currentEntity->angles);
+                }
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    // static int f = 0;
+    // modelRenderers[cl.model_precache[133]]->render(0, cl.time, {}, {});
 }
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
