@@ -69,7 +69,9 @@ void VID_Init (unsigned char *palette)
         initialWidth, initialHeight, SDL_WINDOW_RESIZABLE);
     if (!win) exit(-1);
 
-    SDL_SetWindowMaximumSize(win, 1920, 1080);
+    // Quake's software renderer is unable to handle res >= 2048 due to its use of
+    // fixed point 16.16 everywhere.
+    SDL_SetWindowMaximumSize(win, MAXWIDTH, MAXHEIGHT);
 
     setupSurfaces(initialWidth, initialHeight);
 
