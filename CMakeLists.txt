@@ -31,7 +31,7 @@ target_link_libraries(ren_gl PUBLIC ${GLBINDING_LIB} ${ASSIMP_LIB})
 
 # main executable
 aux_source_directory(src SRC_LIST)
-add_executable(${PROJECT_NAME} WIN32 ${SRC_LIST})
+add_executable(${PROJECT_NAME} ${SRC_LIST})
 
 target_link_libraries(${PROJECT_NAME}
   ren_gl

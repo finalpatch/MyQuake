@@ -58,4 +58,5 @@ private:
     std::unique_ptr<GLBuffer>      _idxBuf; // index buffer
 
     std::vector<std::unique_ptr<ModelFrame>> _frames;
+    std::string _name;
 };

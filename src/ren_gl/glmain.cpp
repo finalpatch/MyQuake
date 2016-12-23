@@ -45,6 +45,8 @@ void R_RenderView (void)
         auto currentEntity = cl_visedicts[i];
         if (currentEntity == &cl_entities[cl.viewentity])
             continue;
+        if (!currentEntity->model)
+            continue;
 		switch (currentEntity->model->type)
 		{
 		case mod_sprite:
@@ -100,13 +102,31 @@ void R_NewMap (void)
     {
         auto model = cl.model_precache[i];
         if (model != nullptr && model->type == mod_alias)
+        {
+            Con_Printf("load model %d: %s\n", i, model->name);
             modelRenderers.emplace(model, std::make_unique<ModelRenderer>(model));
+        }
     }
 }
 
 void R_ParseParticleEffect (void)
 {
+	vec3_t		org, dir;
+	int			i, count, msgcount, color;
+	
+	for (i=0 ; i<3 ; i++)
+		org[i] = MSG_ReadCoord ();
+	for (i=0 ; i<3 ; i++)
+		dir[i] = MSG_ReadChar () * (1.0/16);
+	msgcount = MSG_ReadByte ();
+	color = MSG_ReadByte ();
 
+if (msgcount == 255)
+	count = 1024;
+else
+	count = msgcount;
+	
+	R_RunParticleEffect (org, dir, color, count);
 }
 
 void R_RunParticleEffect (vec3_t org, vec3_t dir, int color, int count)

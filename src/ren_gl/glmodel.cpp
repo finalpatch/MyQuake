@@ -77,7 +77,7 @@ static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices
     }
 }
 
-ModelRenderer::ModelRenderer(const model_s* quakeModel)
+ModelRenderer::ModelRenderer(const model_s* quakeModel) : _name(quakeModel->name)
 {
     auto modelHeader = (const aliashdr_t*)Mod_Extradata(const_cast<model_s*>(quakeModel));
 	auto modelDesc = (const mdl_t*)((byte *)modelHeader + modelHeader->model);
