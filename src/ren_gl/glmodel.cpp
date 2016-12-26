@@ -77,16 +77,16 @@ static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices
     }
 }
 
-ModelRenderer::ModelRenderer(const model_s* quakeModel) : _name(quakeModel->name)
+ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->name)
 {
-    auto modelHeader = (const aliashdr_t*)Mod_Extradata(const_cast<model_s*>(quakeModel));
+    auto modelHeader = (const aliashdr_t*)Mod_Extradata(const_cast<model_s*>(entityModel));
 	auto modelDesc = (const mdl_t*)((byte *)modelHeader + modelHeader->model);
 
     std::vector<GLfloat> vertices;
     std::vector<GLfloat> normals;
     std::vector<GLushort> indexes;
 
-    for (int frameId = 0; frameId < quakeModel->numframes; ++frameId)
+    for (int frameId = 0; frameId < entityModel->numframes; ++frameId)
     {
         if (modelHeader->frames[frameId].type == ALIAS_SINGLE)
         {
@@ -145,16 +145,12 @@ ModelRenderer::~ModelRenderer()
 
 void ModelRenderer::render(int frameId, float time, const float* origin, const float* angles)
 {
-    vec3_t eyefwd, eyeright, eyeup;
-    AngleVectors(r_refdef.viewangles, eyefwd, eyeright, eyeup);
-    glm::vec3 eyePos(r_refdef.vieworg[0], r_refdef.vieworg[2], -r_refdef.vieworg[1]);
-    glm::vec3 pos(origin[0], origin[2], -origin[1]);
+    glm::vec3 eyePos = qvec2glm(r_origin);
+    glm::vec3 eyeDirection = qvec2glm(vpn);
+    glm::vec3 pos = qvec2glm(origin);
     glm::mat4 modelview = 
-         glm::lookAt(
-            glm::vec3{-eyefwd[0], -eyefwd[2], eyefwd[1]},
-            glm::vec3{0, 0, 0},
-            glm::vec3{eyeup[0], eyeup[2], -eyeup[1]})
-        * glm::translate(glm::mat4(), pos - eyePos)
+          glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup))
+        * glm::translate(glm::mat4(), pos)
         * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1})
         * glm::rotate(glm::mat4(), glm::radians(angles[1]), {0, 1, 0})
         * glm::rotate(glm::mat4(), glm::radians(angles[0]), {1, 0, 0});

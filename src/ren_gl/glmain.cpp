@@ -16,6 +16,9 @@ qboolean r_cache_thrash = qfalse;
 
 std::unordered_map<model_t*, std::unique_ptr<ModelRenderer>> modelRenderers;
 
+void drawLevel();
+void drawEntities();
+
 void R_Init (void)
 {
     glbinding::Binding::initialize();
@@ -35,43 +38,18 @@ void R_InitEfrags (void)
 
 void R_RenderView (void)
 {
+    // sound output uses these
+   	VectorCopy(r_refdef.vieworg, r_origin);
+	AngleVectors (r_refdef.viewangles, vpn, vright, vup);
+
     static GLfloat bgColor[] = {0.27, 0.53, 0.71, 1.0};
     glViewport(0, 0, vid.width, vid.height);
     glClearBufferfv(GL_COLOR, 0, bgColor);
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
 
-    for (int i = 0; i < cl_numvisedicts; ++i)
-    {
-        auto currentEntity = cl_visedicts[i];
-        if (currentEntity == &cl_entities[cl.viewentity])
-            continue;
-        if (!currentEntity->model)
-            continue;
-		switch (currentEntity->model->type)
-		{
-		case mod_sprite:
-            break;
-		case mod_alias:
-            {
-                auto model = currentEntity->model;
-                auto& modelRenderer = modelRenderers[model];
-                if (modelRenderer)
-                {
-                    modelRenderer->render(
-                        currentEntity->frame,
-                        cl.time + currentEntity->syncbase,
-                        currentEntity->origin,
-                        currentEntity->angles);
-                }
-            }
-            break;
-        default:
-            break;
-        }
-    }
+    drawLevel();
+    drawEntities();
 
-    // static int f = 0;
-    // modelRenderers[cl.model_precache[133]]->render(0, cl.time, {}, {});
 }
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
@@ -101,10 +79,16 @@ void R_NewMap (void)
     for (int i = 0; i < MAX_MODELS; ++i)
     {
         auto model = cl.model_precache[i];
-        if (model != nullptr && model->type == mod_alias)
+        if (model == nullptr)
+            continue;
+        if (model->type == mod_alias)
         {
             Con_Printf("load model %d: %s\n", i, model->name);
             modelRenderers.emplace(model, std::make_unique<ModelRenderer>(model));
+        }
+        else if (model->type == mod_brush)
+        {
+            
         }
     }
 }
@@ -121,10 +105,10 @@ void R_ParseParticleEffect (void)
 	msgcount = MSG_ReadByte ();
 	color = MSG_ReadByte ();
 
-if (msgcount == 255)
-	count = 1024;
-else
-	count = msgcount;
+    if (msgcount == 255)
+        count = 1024;
+    else
+        count = msgcount;
 	
 	R_RunParticleEffect (org, dir, color, count);
 }
@@ -186,4 +170,42 @@ void D_InitCaches (void *buffer, int size)
 void R_SetVrect (vrect_t *pvrect, vrect_t *pvrectin, int lineadj)
 {
 
+}
+
+// ************************************************************************
+void drawLevel()
+{
+}
+
+void drawEntities()
+{
+    for (int i = 0; i < cl_numvisedicts; ++i)
+    {
+        auto currentEntity = cl_visedicts[i];
+        if (currentEntity == &cl_entities[cl.viewentity])
+            continue;
+        if (!currentEntity->model)
+            continue;
+		switch (currentEntity->model->type)
+		{
+		case mod_sprite:
+            break;
+		case mod_alias:
+            {
+                auto model = currentEntity->model;
+                auto& modelRenderer = modelRenderers[model];
+                if (modelRenderer)
+                {
+                    modelRenderer->render(
+                        currentEntity->frame,
+                        cl.time + currentEntity->syncbase,
+                        currentEntity->origin,
+                        currentEntity->angles);
+                }
+            }
+            break;
+        default:
+            break;
+        }
+    }
 }

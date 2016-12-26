@@ -46,7 +46,7 @@ private:
 class ModelRenderer
 {
 public:
-    ModelRenderer(const model_s* quakeModel);
+    ModelRenderer(const model_s* entityModel);
     virtual ~ModelRenderer();
 
     void render(int frameId, float time, const float* origin, const float* angles);
