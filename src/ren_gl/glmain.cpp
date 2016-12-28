@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include "glmodel.h"
+#include "gllevel.h"
 
 extern "C"
 {
@@ -15,6 +16,7 @@ qboolean r_cache_thrash = qfalse;
 }
 
 std::unordered_map<model_t*, std::unique_ptr<ModelRenderer>> modelRenderers;
+std::unique_ptr<LevelRenderer> levelRenderer;
 
 void drawLevel();
 void drawEntities();
@@ -74,6 +76,8 @@ void R_RemoveEfrags (entity_t *ent)
 
 void R_NewMap (void)
 {
+    levelRenderer = std::make_unique<LevelRenderer>(cl.worldmodel);
+
     modelRenderers.clear();
 
     for (int i = 0; i < MAX_MODELS; ++i)
@@ -88,7 +92,7 @@ void R_NewMap (void)
         }
         else if (model->type == mod_brush)
         {
-            
+
         }
     }
 }
@@ -175,6 +179,7 @@ void R_SetVrect (vrect_t *pvrect, vrect_t *pvrectin, int lineadj)
 // ************************************************************************
 void drawLevel()
 {
+    levelRenderer->render();
 }
 
 void drawEntities()
