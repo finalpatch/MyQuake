@@ -20,8 +20,9 @@ class ModelRenderProgram
 {
     struct UniformBlock
     {
+        GLfloat model[4*4];
+        GLfloat view[4*4];
         GLfloat projection[4*4];
-        GLfloat modelview[4*4];
     };
 public:
     static void use()
@@ -29,12 +30,13 @@ public:
         getInstance()._prog->use();
     }
 
-    static void setup(float w, float h, const glm::mat4& modelview)
+    static void setup(float w, float h, const glm::mat4& model, const glm::mat4& view)
     {
         auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 5000.0f);
         UniformBlock uniformBlock;
+        memcpy(uniformBlock.model, glm::value_ptr(model), sizeof(uniformBlock.model));
+        memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
-        memcpy(uniformBlock.modelview, glm::value_ptr(modelview), sizeof(uniformBlock.modelview));
         getInstance()._ufmBuf->update(&uniformBlock);
     }
 private:
@@ -103,7 +105,7 @@ LevelRenderer::LevelRenderer(const model_s* levelModel)
                 glm::vec3 v0 = qvec2glm(levelModel->vertexes[firstVertexIndex].position);
                 glm::vec3 v1 = qvec2glm(levelModel->vertexes[previousVertexIndex].position);
                 glm::vec3 v2 = qvec2glm(levelModel->vertexes[currentVertexIndex].position);
-                glm::vec3 normal = glm::normalize(glm::cross(v1 - v0, v2 - v1));
+                glm::vec3 normal = glm::normalize(glm::cross(v2 - v1, v1 - v0));
 
                 indexBuffer.push_back(vertexBuffer.size() / 3);
                 vertexBuffer.push_back(v0[0]); vertexBuffer.push_back(v0[1]); vertexBuffer.push_back(v0[2]);
@@ -147,10 +149,10 @@ void LevelRenderer::render()
 
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);
-    glm::mat4 modelview = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup))
-        ;
+    glm::mat4 model;
+    glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
-    ModelRenderProgram::setup(vid.width, vid.height, modelview);
+    ModelRenderProgram::setup(vid.width, vid.height, model, view);
     ModelRenderProgram::use();
     _vao->bind();
     glDrawElements(GL_TRIANGLES, _idxBuf->size() / sizeof(GLuint), GL_UNSIGNED_INT, nullptr);

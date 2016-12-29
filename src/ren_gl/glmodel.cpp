@@ -24,8 +24,9 @@ class ModelRenderProgram
 {
     struct UniformBlock
     {
+        GLfloat model[4*4];
+        GLfloat view[4*4];
         GLfloat projection[4*4];
-        GLfloat modelview[4*4];
     };
 public:
     static void use()
@@ -33,12 +34,13 @@ public:
         getInstance()._prog->use();
     }
 
-    static void setup(float w, float h, const glm::mat4& modelview)
+    static void setup(float w, float h, const glm::mat4& model, const glm::mat4& view)
     {
         auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 5000.0f);
         UniformBlock uniformBlock;
+        memcpy(uniformBlock.model, glm::value_ptr(model), sizeof(uniformBlock.model));
+        memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
-        memcpy(uniformBlock.modelview, glm::value_ptr(modelview), sizeof(uniformBlock.modelview));
         getInstance()._ufmBuf->update(&uniformBlock);
     }
 private:
@@ -148,14 +150,14 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);
     glm::vec3 pos = qvec2glm(origin);
-    glm::mat4 modelview = 
-          glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup))
-        * glm::translate(glm::mat4(), pos)
+    glm::mat4 model = 
+        glm::translate(glm::mat4(), pos)
         * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1})
         * glm::rotate(glm::mat4(), glm::radians(angles[1]), {0, 1, 0})
         * glm::rotate(glm::mat4(), glm::radians(angles[0]), {1, 0, 0});
+    glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
-    ModelRenderProgram::setup(vid.width, vid.height, modelview);
+    ModelRenderProgram::setup(vid.width, vid.height, model, view);
     ModelRenderProgram::use();
     _vao->bind();
     auto offset = _frames[frameId]->getVertexOffset(time);
