@@ -65,12 +65,14 @@ LevelRenderer::LevelRenderer(const model_s* levelModel)
 {
     std::vector<GLfloat> vertexBuffer;
     std::vector<GLfloat> normalBuffer;
-    std::vector<GLuint> indexBuffer;
 
     int triangles = 0;
     for (int i = 0; i < levelModel->numsurfaces; ++i)
     {
         const auto& surface = levelModel->surfaces[i];
+
+        if (strcmp(surface.texinfo->texture->name, "trigger") == 0)
+            continue;
 
         int firstVertexIndex;
         int previousVertexIndex;
@@ -101,19 +103,15 @@ LevelRenderer::LevelRenderer(const model_s* levelModel)
             }
             else
             {
-                // compute surface normal
                 glm::vec3 v0 = qvec2glm(levelModel->vertexes[firstVertexIndex].position);
                 glm::vec3 v1 = qvec2glm(levelModel->vertexes[previousVertexIndex].position);
                 glm::vec3 v2 = qvec2glm(levelModel->vertexes[currentVertexIndex].position);
-                glm::vec3 normal = glm::normalize(glm::cross(v2 - v1, v1 - v0));
 
-                indexBuffer.push_back(vertexBuffer.size() / 3);
                 vertexBuffer.push_back(v0[0]); vertexBuffer.push_back(v0[1]); vertexBuffer.push_back(v0[2]);
-                indexBuffer.push_back(vertexBuffer.size() / 3);
                 vertexBuffer.push_back(v1[0]); vertexBuffer.push_back(v1[1]); vertexBuffer.push_back(v1[2]);
-                indexBuffer.push_back(vertexBuffer.size() / 3);
                 vertexBuffer.push_back(v2[0]); vertexBuffer.push_back(v2[1]); vertexBuffer.push_back(v2[2]);
 
+                glm::vec3 normal = qvec2glm(surface.plane->normal);
                 normalBuffer.push_back(normal[0]); normalBuffer.push_back(normal[1]); normalBuffer.push_back(normal[2]);
                 normalBuffer.push_back(normal[0]); normalBuffer.push_back(normal[1]); normalBuffer.push_back(normal[2]);
                 normalBuffer.push_back(normal[0]); normalBuffer.push_back(normal[1]); normalBuffer.push_back(normal[2]);
@@ -125,7 +123,6 @@ LevelRenderer::LevelRenderer(const model_s* levelModel)
 
     _vtxBuf = std::make_unique<GLBuffer>(vertexBuffer.data(), vertexBuffer.size() * sizeof(GLfloat));
     _nrmBuf = std::make_unique<GLBuffer>(normalBuffer.data(), normalBuffer.size() * sizeof(GLfloat));
-    _idxBuf = std::make_unique<GLBuffer>(indexBuffer.data(), indexBuffer.size() * sizeof(GLuint));
 
     _vao = std::make_unique<VertexArray>();
 
@@ -136,8 +133,6 @@ LevelRenderer::LevelRenderer(const model_s* levelModel)
     _vao->enableAttrib(kVertexInputNormal);
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_TRUE);
     _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf, 3 * sizeof(GLfloat));
-
-    _vao->indexBuffer(*_idxBuf);
 }
 
 void LevelRenderer::render()
@@ -155,7 +150,7 @@ void LevelRenderer::render()
     ModelRenderProgram::setup(vid.width, vid.height, model, view);
     ModelRenderProgram::use();
     _vao->bind();
-    glDrawElements(GL_TRIANGLES, _idxBuf->size() / sizeof(GLuint), GL_UNSIGNED_INT, nullptr);
+    glDrawArrays(GL_TRIANGLES, 0, _vtxBuf->size() / (sizeof(GLfloat) * 3));
 }
 
 void LevelRenderer::markLeaves (mleaf_s* viewleaf)

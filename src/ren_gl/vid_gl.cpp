@@ -32,8 +32,8 @@ void VID_ShiftPalette (unsigned char *palette)
 
 void VID_Init (unsigned char *palette)
 {
-    int initialWidth = 1920;
-    int initialHeight = 1080;
+    int initialWidth = 1280;
+    int initialHeight = 720;
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
