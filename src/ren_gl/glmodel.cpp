@@ -29,12 +29,7 @@ class ModelRenderProgram
         GLfloat projection[4*4];
     };
 public:
-    static void use()
-    {
-        getInstance()._prog->use();
-    }
-
-    static void setup(float w, float h, const glm::mat4& model, const glm::mat4& view)
+    static void use(float w, float h, const glm::mat4& model, const glm::mat4& view)
     {
         auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 5000.0f);
         UniformBlock uniformBlock;
@@ -42,7 +37,9 @@ public:
         memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
         getInstance()._ufmBuf->update(&uniformBlock);
+        getInstance()._prog->use();
     }
+
 private:
     ModelRenderProgram()
     {
@@ -157,8 +154,7 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
         * glm::rotate(glm::mat4(), glm::radians(angles[0]), {1, 0, 0});
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
-    ModelRenderProgram::setup(vid.width, vid.height, model, view);
-    ModelRenderProgram::use();
+    ModelRenderProgram::use(vid.width, vid.height, model, view);
     _vao->bind();
     auto offset = _frames[frameId]->getVertexOffset(time);
     glDrawElementsBaseVertex(GL_TRIANGLES, _idxBuf->size() / sizeof(GLushort), GL_UNSIGNED_SHORT, nullptr, offset);

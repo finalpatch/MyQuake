@@ -16,7 +16,7 @@ enum {
     kVertexInputNormal = 1
 };
 
-class ModelRenderProgram
+class LevelRenderProgram
 {
     struct UniformBlock
     {
@@ -25,12 +25,7 @@ class ModelRenderProgram
         GLfloat projection[4*4];
     };
 public:
-    static void use()
-    {
-        getInstance()._prog->use();
-    }
-
-    static void setup(float w, float h, const glm::mat4& model, const glm::mat4& view)
+    static void use(float w, float h, const glm::mat4& model, const glm::mat4& view)
     {
         auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 5000.0f);
         UniformBlock uniformBlock;
@@ -38,9 +33,11 @@ public:
         memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
         getInstance()._ufmBuf->update(&uniformBlock);
+        getInstance()._prog->use();
     }
+
 private:
-    ModelRenderProgram()
+    LevelRenderProgram()
     {
         std::vector<Shader> shaders;
         shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs.glsl"));
@@ -51,9 +48,9 @@ private:
         _prog->setUniformBlock("TransformBlock", *_ufmBuf);
     }
 
-    static ModelRenderProgram& getInstance()
+    static LevelRenderProgram& getInstance()
     {
-        static ModelRenderProgram singleton;
+        static LevelRenderProgram singleton;
         return singleton;
     }
 
@@ -147,8 +144,7 @@ void LevelRenderer::render()
     glm::mat4 model;
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
-    ModelRenderProgram::setup(vid.width, vid.height, model, view);
-    ModelRenderProgram::use();
+    LevelRenderProgram::use(vid.width, vid.height, model, view);
     _vao->bind();
     glDrawArrays(GL_TRIANGLES, 0, _vtxBuf->size() / (sizeof(GLfloat) * 3));
 }
