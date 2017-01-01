@@ -34,6 +34,7 @@ public:
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
         getInstance()._ufmBuf->update(&uniformBlock);
         getInstance()._prog->use();
+        getInstance()._prog->setUniformBlock("TransformBlock", * getInstance()._ufmBuf);
     }
 
 private:
@@ -41,11 +42,9 @@ private:
     {
         std::vector<Shader> shaders;
         shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs.glsl"));
-        shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps.glsl"));
+        shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps1.glsl"));
         _prog = std::make_unique<RenderProgram>(shaders);
-
-        _ufmBuf = std::make_unique<GLBuffer>(nullptr, sizeof(UniformBlock), GL_DYNAMIC_STORAGE_BIT);
-        _prog->setUniformBlock("TransformBlock", *_ufmBuf);
+        _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, GL_DYNAMIC_STORAGE_BIT);
     }
 
     static LevelRenderProgram& getInstance()
@@ -55,13 +54,13 @@ private:
     }
 
     std::unique_ptr<RenderProgram> _prog;
-    std::unique_ptr<GLBuffer>      _ufmBuf;
+    std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
 };
 
 LevelRenderer::LevelRenderer(const model_s* levelModel)
 {
-    std::vector<GLfloat> vertexBuffer;
-    std::vector<GLfloat> normalBuffer;
+    std::vector<GLvec3> vertexBuffer;
+    std::vector<GLvec3> normalBuffer;
 
     int triangles = 0;
     for (int i = 0; i < levelModel->numsurfaces; ++i)
@@ -104,32 +103,32 @@ LevelRenderer::LevelRenderer(const model_s* levelModel)
                 glm::vec3 v1 = qvec2glm(levelModel->vertexes[previousVertexIndex].position);
                 glm::vec3 v2 = qvec2glm(levelModel->vertexes[currentVertexIndex].position);
 
-                vertexBuffer.push_back(v0[0]); vertexBuffer.push_back(v0[1]); vertexBuffer.push_back(v0[2]);
-                vertexBuffer.push_back(v1[0]); vertexBuffer.push_back(v1[1]); vertexBuffer.push_back(v1[2]);
-                vertexBuffer.push_back(v2[0]); vertexBuffer.push_back(v2[1]); vertexBuffer.push_back(v2[2]);
+                vertexBuffer.emplace_back(GLvec3{v0[0], v0[1], v0[2]});
+                vertexBuffer.emplace_back(GLvec3{v1[0], v1[1], v1[2]});
+                vertexBuffer.emplace_back(GLvec3{v2[0], v2[1], v2[2]});
 
-                glm::vec3 normal = qvec2glm(surface.plane->normal);
-                normalBuffer.push_back(normal[0]); normalBuffer.push_back(normal[1]); normalBuffer.push_back(normal[2]);
-                normalBuffer.push_back(normal[0]); normalBuffer.push_back(normal[1]); normalBuffer.push_back(normal[2]);
-                normalBuffer.push_back(normal[0]); normalBuffer.push_back(normal[1]); normalBuffer.push_back(normal[2]);
+                glm::vec3 n = qvec2glm(surface.plane->normal);
+                normalBuffer.emplace_back(GLvec3{n[0], n[1], n[2]});
+                normalBuffer.emplace_back(GLvec3{n[0], n[1], n[2]});
+                normalBuffer.emplace_back(GLvec3{n[0], n[1], n[2]});
 
                 previousVertexIndex = currentVertexIndex;
             }
         }
     }
 
-    _vtxBuf = std::make_unique<GLBuffer>(vertexBuffer.data(), vertexBuffer.size() * sizeof(GLfloat));
-    _nrmBuf = std::make_unique<GLBuffer>(normalBuffer.data(), normalBuffer.size() * sizeof(GLfloat));
+    _vtxBuf = std::make_unique<GLBuffer<GLvec3>>(vertexBuffer.data(), vertexBuffer.size());
+    _nrmBuf = std::make_unique<GLBuffer<GLvec3>>(normalBuffer.data(), normalBuffer.size());
 
     _vao = std::make_unique<VertexArray>();
 
     _vao->enableAttrib(kVertexInputVertex);
     _vao->format(kVertexInputVertex, 3, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputVertex, *_vtxBuf, 3 * sizeof(GLfloat));
+    _vao->vertexBuffer(kVertexInputVertex, *_vtxBuf, sizeof(GLvec3));
 
     _vao->enableAttrib(kVertexInputNormal);
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_TRUE);
-    _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf, 3 * sizeof(GLfloat));
+    _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf, sizeof(GLvec3));
 }
 
 void LevelRenderer::render()
@@ -146,7 +145,7 @@ void LevelRenderer::render()
 
     LevelRenderProgram::use(vid.width, vid.height, model, view);
     _vao->bind();
-    glDrawArrays(GL_TRIANGLES, 0, _vtxBuf->size() / (sizeof(GLfloat) * 3));
+    glDrawArrays(GL_TRIANGLES, 0, _vtxBuf->size());
 }
 
 void LevelRenderer::markLeaves (mleaf_s* viewleaf)

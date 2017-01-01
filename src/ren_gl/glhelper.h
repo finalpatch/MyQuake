@@ -6,6 +6,11 @@
 
 using namespace gl45core;
 
+using GLvec3 = std::array<GLfloat, 3>;
+using GLvec4 = std::array<GLfloat, 4>;
+using GLmat3 = std::array<GLfloat, 3 * 3>;
+using GLmat4 = std::array<GLfloat, 4 * 4>;
+
 class GLObject
 {
 public:
@@ -30,15 +35,29 @@ protected:
     GLuint _handle;
 };
 
-class GLBuffer : public GLObject
+class GLGenericBuffer : public GLObject
+{
+public:
+    void bind(GLenum target)
+    {
+        glBindBuffer(target, _handle);
+    }
+    void bind(GLenum target, GLuint index)
+    {
+        glBindBufferBase(target, index, _handle);
+    }
+};
+
+template<typename T>
+class GLBuffer : public GLGenericBuffer
 {
     size_t _size;
 public:
-    GLBuffer(const void* data, size_t size, BufferStorageMask flags = GL_NONE_BIT)
+    GLBuffer(const T* data, size_t size, BufferStorageMask flags = GL_NONE_BIT)
         : _size(size)
     {
         glCreateBuffers(1, &_handle);
-        glNamedBufferStorage(_handle, size, data, flags);
+        glNamedBufferStorage(_handle, size * sizeof(T), data, flags);
     }
     GLBuffer(GLBuffer&& other) : GLObject(std::move(other))
     {
@@ -53,22 +72,13 @@ public:
     {
         return _size;
     }
-    void update(const void* data, size_t size, size_t offset = 0)
+    void update(const T* data, size_t size, size_t offset = 0)
     {
-        glNamedBufferSubData(_handle, offset, size, data);
+        glNamedBufferSubData(_handle, offset * sizeof(T), size * sizeof(T), data);
     }
-    template <typename T>
     void update(const T* data)
     {
-        update(data, sizeof(T), 0);
-    }
-    void bind(GLenum target)
-    {
-        glBindBuffer(target, _handle);
-    }
-    void bind(GLenum target, GLuint index)
-    {
-        glBindBufferBase(target, index, _handle);
+        update(data, 1);
     }
 };
 
@@ -143,7 +153,7 @@ public:
     {
         glUseProgram(_handle);
     }
-    void setUniformBlock(const std::string& name, GLBuffer& buf)
+    void setUniformBlock(const std::string& name, GLGenericBuffer& buf)
     {
         GLuint idx = glGetUniformBlockIndex(_handle, name.c_str());
         if (idx != GL_INVALID_INDEX)
@@ -176,11 +186,11 @@ public:
     {
         glVertexArrayAttribFormat(_handle, index, size, type, normalized, offset);
     }
-    void vertexBuffer(GLuint index, GLBuffer& buf, GLsizei stride, GLintptr offset = 0)
+    void vertexBuffer(GLuint index, GLGenericBuffer& buf, GLsizei stride, GLintptr offset = 0)
     {
         glVertexArrayVertexBuffer(_handle, index, buf.handle(), offset, stride);
     }
-    void indexBuffer(GLBuffer& buf)
+    void indexBuffer(GLGenericBuffer& buf)
     {
         glVertexArrayElementBuffer(_handle, buf.handle());
     }

@@ -15,8 +15,8 @@ private:
     mleaf_s* _oldviewleaf;
 
     std::unique_ptr<VertexArray> _vao;
-    std::unique_ptr<GLBuffer> _vtxBuf;
-    std::unique_ptr<GLBuffer> _nrmBuf;
+    std::unique_ptr<GLBuffer<GLvec3>> _vtxBuf;
+    std::unique_ptr<GLBuffer<GLvec3>> _nrmBuf;
 
     void markLeaves (mleaf_s* viewleaf);
 };

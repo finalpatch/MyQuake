@@ -52,10 +52,10 @@ public:
     void render(int frameId, float time, const float* origin, const float* angles);
 
 private:
-    std::unique_ptr<VertexArray>   _vao;    // buffer setup
-    std::unique_ptr<GLBuffer>      _vtxBuf; // vertex buffer
-    std::unique_ptr<GLBuffer>      _nrmBuf; // normal buffer
-    std::unique_ptr<GLBuffer>      _idxBuf; // index buffer
+    std::unique_ptr<VertexArray>        _vao;    // buffer setup
+    std::unique_ptr<GLBuffer<GLvec3>>   _vtxBuf; // vertex buffer
+    std::unique_ptr<GLBuffer<GLvec3>>   _nrmBuf; // normal buffer
+    std::unique_ptr<GLBuffer<GLushort>> _idxBuf; // index buffer
 
     std::vector<std::unique_ptr<ModelFrame>> _frames;
     std::string _name;

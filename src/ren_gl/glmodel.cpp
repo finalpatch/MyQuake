@@ -38,6 +38,7 @@ public:
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
         getInstance()._ufmBuf->update(&uniformBlock);
         getInstance()._prog->use();
+        getInstance()._prog->setUniformBlock("TransformBlock", * getInstance()._ufmBuf);
     }
 
 private:
@@ -47,9 +48,7 @@ private:
         shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs.glsl"));
         shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps.glsl"));
         _prog = std::make_unique<RenderProgram>(shaders);
-
-        _ufmBuf = std::make_unique<GLBuffer>(nullptr, sizeof(UniformBlock), GL_DYNAMIC_STORAGE_BIT);
-        _prog->setUniformBlock("TransformBlock", *_ufmBuf);
+        _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, GL_DYNAMIC_STORAGE_BIT);
     }
 
     static ModelRenderProgram& getInstance()
@@ -59,20 +58,22 @@ private:
     }
 
     std::unique_ptr<RenderProgram> _prog;
-    std::unique_ptr<GLBuffer>      _ufmBuf;
+    std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
 };
 
 static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices,
-    std::vector<GLfloat>& vertices, std::vector<GLfloat>& normals)
+    std::vector<GLvec3>& vertices, std::vector<GLvec3>& normals)
 {
     for(int i = 0; i < modelDesc->numverts; ++i)
     {
-        vertices.push_back(scaledVertices[i].v[0] * modelDesc->scale[0] + modelDesc->scale_origin[0]);
-        vertices.push_back(scaledVertices[i].v[2] * modelDesc->scale[2] + modelDesc->scale_origin[2]);
-        vertices.push_back(-(scaledVertices[i].v[1] * modelDesc->scale[1] + modelDesc->scale_origin[1]));
-        normals.push_back(r_avertexnormals[scaledVertices[i].lightnormalindex][0]);
-        normals.push_back(r_avertexnormals[scaledVertices[i].lightnormalindex][2]);
-        normals.push_back(-r_avertexnormals[scaledVertices[i].lightnormalindex][1]);
+        vertices.emplace_back(GLvec3{
+            scaledVertices[i].v[0] * modelDesc->scale[0] + modelDesc->scale_origin[0],
+            scaledVertices[i].v[2] * modelDesc->scale[2] + modelDesc->scale_origin[2],
+            -(scaledVertices[i].v[1] * modelDesc->scale[1] + modelDesc->scale_origin[1])});
+        normals.emplace_back(GLvec3{
+            r_avertexnormals[scaledVertices[i].lightnormalindex][0],
+            r_avertexnormals[scaledVertices[i].lightnormalindex][2],
+            -r_avertexnormals[scaledVertices[i].lightnormalindex][1]});
     }
 }
 
@@ -81,8 +82,8 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
     auto modelHeader = (const aliashdr_t*)Mod_Extradata(const_cast<model_s*>(entityModel));
 	auto modelDesc = (const mdl_t*)((byte *)modelHeader + modelHeader->model);
 
-    std::vector<GLfloat> vertices;
-    std::vector<GLfloat> normals;
+    std::vector<GLvec3> vertices;
+    std::vector<GLvec3> normals;
     std::vector<GLushort> indexes;
 
     for (int frameId = 0; frameId < entityModel->numframes; ++frameId)
@@ -90,7 +91,7 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
         if (modelHeader->frames[frameId].type == ALIAS_SINGLE)
         {
     	    auto scaledVertices = (const trivertx_t*)((byte*)modelHeader + modelHeader->frames[frameId].frame);
-            VertexRange vertexRange = {uint32_t(vertices.size() / 3), 0.0f};
+            VertexRange vertexRange = {uint32_t(vertices.size()), 0.0f};
             addVertices(modelDesc, scaledVertices, vertices, normals);
             _frames.push_back(std::make_unique<SingleModelFrame>(vertexRange, modelHeader->frames[frameId].name));
         }
@@ -105,7 +106,7 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
             for (int i = 0; i < numframes; ++i)
             {
                 auto scaledVertices = (const trivertx_t*)((byte*)modelHeader + group->frames[i].frame);
-                VertexRange vertexRange = {uint32_t(vertices.size() / 3), intervals[i]};
+                VertexRange vertexRange = {uint32_t(vertices.size()), intervals[i]};
                 addVertices(modelDesc, scaledVertices, vertices, normals);
                 groupedFrame->addSubFrame(vertexRange);
             }
@@ -121,19 +122,19 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
         indexes.push_back(triangles[i].vertindex[2]);
     }
 
-    _vtxBuf = std::make_unique<GLBuffer>(vertices.data(), vertices.size() * sizeof(GLfloat));
-    _nrmBuf = std::make_unique<GLBuffer>(normals.data(), normals.size() * sizeof(GLfloat));
-    _idxBuf = std::make_unique<GLBuffer>(indexes.data(), indexes.size() * sizeof(GLushort));
+    _vtxBuf = std::make_unique<GLBuffer<GLvec3>>(vertices.data(), vertices.size());
+    _nrmBuf = std::make_unique<GLBuffer<GLvec3>>(normals.data(), normals.size());
+    _idxBuf = std::make_unique<GLBuffer<GLushort>>(indexes.data(), indexes.size());
 
     _vao = std::make_unique<VertexArray>();
 
     _vao->enableAttrib(kVertexInputVertex);
     _vao->format(kVertexInputVertex, 3, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputVertex, *_vtxBuf, 3 * sizeof(GLfloat));
+    _vao->vertexBuffer(kVertexInputVertex, *_vtxBuf, sizeof(GLvec3));
 
     _vao->enableAttrib(kVertexInputNormal);
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_TRUE);
-    _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf, 3 * sizeof(GLfloat));
+    _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf, sizeof(GLvec3));
 
     _vao->indexBuffer(*_idxBuf);
 }
@@ -157,7 +158,7 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
     ModelRenderProgram::use(vid.width, vid.height, model, view);
     _vao->bind();
     auto offset = _frames[frameId]->getVertexOffset(time);
-    glDrawElementsBaseVertex(GL_TRIANGLES, _idxBuf->size() / sizeof(GLushort), GL_UNSIGNED_SHORT, nullptr, offset);
+    glDrawElementsBaseVertex(GL_TRIANGLES, _idxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
 }
 
 // *******************

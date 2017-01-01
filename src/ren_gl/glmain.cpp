@@ -51,7 +51,6 @@ void R_RenderView (void)
 
     drawLevel();
     drawEntities();
-
 }
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
