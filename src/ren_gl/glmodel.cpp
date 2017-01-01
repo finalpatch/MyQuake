@@ -51,7 +51,7 @@ private:
         shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs.glsl"));
         shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps.glsl"));
         _prog = std::make_unique<RenderProgram>(shaders);
-        _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, GL_DYNAMIC_STORAGE_BIT);
+        _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, GL_DYNAMIC_DRAW);
     }
 
     static ModelRenderProgram& getInstance()

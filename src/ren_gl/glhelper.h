@@ -53,11 +53,14 @@ class GLBuffer : public GLGenericBuffer
 {
     size_t _size;
 public:
-    GLBuffer(const T* data, size_t size, BufferStorageMask flags = GL_NONE_BIT)
+    GLBuffer(const T* data, size_t size, GLenum flags = GL_STATIC_DRAW)
         : _size(size)
     {
-        glCreateBuffers(1, &_handle);
-        glNamedBufferStorage(_handle, size * sizeof(T), data, flags);
+        //glCreateBuffers(1, &_handle);
+        //glNamedBufferStorage(_handle, size * sizeof(T), data, flags);
+        glGenBuffers(1, &_handle);
+        bind(GL_COPY_WRITE_BUFFER);
+        glBufferData(GL_COPY_WRITE_BUFFER, size * sizeof(T), data, flags);
     }
     GLBuffer(GLBuffer&& other) : GLObject(std::move(other))
     {
@@ -74,7 +77,9 @@ public:
     }
     void update(const T* data, size_t size, size_t offset = 0)
     {
-        glNamedBufferSubData(_handle, offset * sizeof(T), size * sizeof(T), data);
+        //glNamedBufferSubData(_handle, offset * sizeof(T), size * sizeof(T), data);
+        bind(GL_COPY_WRITE_BUFFER);
+        glBufferSubData(GL_COPY_WRITE_BUFFER, offset * sizeof(T), size * sizeof(T), data);
     }
     void update(const T* data)
     {
@@ -131,13 +136,10 @@ public:
         glGetProgramiv(_handle, GL_LINK_STATUS, &isLinked);
         if(!isLinked)
         {
-            GLint maxLength = 4096;
-            //glGetProgramiv(_handle, GL_INFO_LOG_LENGTH, &maxLength);
-
-            //The maxLength includes the NULL character
+            GLint maxLength;
+            glGetProgramiv(_handle, GL_INFO_LOG_LENGTH, &maxLength);
             std::vector<GLchar> infoLog(maxLength);
             glGetProgramInfoLog(_handle, maxLength, &maxLength, &infoLog[0]);
-
             printf("link failed: %s", infoLog.data());
         }
     }
@@ -165,10 +167,15 @@ public:
 
 class VertexArray : public GLObject
 {
+    GLint _size;
+    GLenum _type;
+    GLboolean _normalized;
 public:
     VertexArray()
     {
-        glCreateVertexArrays(1, &_handle);
+        //glCreateVertexArrays(1, &_handle);
+        glGenVertexArrays(1, &_handle);
+        bind();
     }
     VertexArray(VertexArray&& other) : GLObject(std::move(other))
     {
@@ -180,19 +187,26 @@ public:
     }
     void enableAttrib(GLuint index)
     {
-        glEnableVertexArrayAttrib(_handle, index);
+        // glEnableVertexArrayAttrib(_handle, index);
+        glEnableVertexAttribArray(index);
     }
     void format(GLuint index, GLint size, GLenum type, GLboolean normalized, GLuint offset = 0)
     {
-        glVertexArrayAttribFormat(_handle, index, size, type, normalized, offset);
+        // glVertexArrayAttribFormat(_handle, index, size, type, normalized, offset);
+        _size = size;
+        _type = type;
+        _normalized = normalized;
     }
     void vertexBuffer(GLuint index, GLGenericBuffer& buf, GLsizei stride, GLintptr offset = 0)
     {
-        glVertexArrayVertexBuffer(_handle, index, buf.handle(), offset, stride);
+        // glVertexArrayVertexBuffer(_handle, index, buf.handle(), offset, stride);
+        buf.bind(GL_ARRAY_BUFFER);
+        glVertexAttribPointer(index, _size, _type, _normalized, stride, nullptr);
     }
     void indexBuffer(GLGenericBuffer& buf)
     {
-        glVertexArrayElementBuffer(_handle, buf.handle());
+        // glVertexArrayElementBuffer(_handle, buf.handle());
+        buf.bind(GL_ELEMENT_ARRAY_BUFFER);
     }
     void bind()
     {
