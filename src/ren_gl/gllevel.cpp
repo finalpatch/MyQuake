@@ -25,7 +25,7 @@ class LevelRenderProgram
         GLfloat projection[4*4];
     };
 public:
-    static void use(float w, float h, const glm::mat4& model, const glm::mat4& view)
+    static void setup(float w, float h, const glm::mat4& model, const glm::mat4& view)
     {
         auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 5000.0f);
         UniformBlock uniformBlock;
@@ -33,6 +33,9 @@ public:
         memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
         getInstance()._ufmBuf->update(&uniformBlock);
+    }
+    static void use()
+    {
         getInstance()._prog->use();
         getInstance()._prog->setUniformBlock("TransformBlock", * getInstance()._ufmBuf);
     }
@@ -107,7 +110,10 @@ LevelRenderer::LevelRenderer(const model_s* levelModel)
                 vertexBuffer.emplace_back(GLvec3{v1[0], v1[1], v1[2]});
                 vertexBuffer.emplace_back(GLvec3{v2[0], v2[1], v2[2]});
 
-                glm::vec3 n = qvec2glm(surface.plane->normal);
+                glm::vec3 n = glm::normalize(qvec2glm(surface.plane->normal));
+                if (surface.flags & SURF_PLANEBACK)
+                    n *= -1;
+
                 normalBuffer.emplace_back(GLvec3{n[0], n[1], n[2]});
                 normalBuffer.emplace_back(GLvec3{n[0], n[1], n[2]});
                 normalBuffer.emplace_back(GLvec3{n[0], n[1], n[2]});
@@ -143,7 +149,8 @@ void LevelRenderer::render()
     glm::mat4 model;
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
-    LevelRenderProgram::use(vid.width, vid.height, model, view);
+    LevelRenderProgram::setup(vid.width, vid.height, model, view);
+    LevelRenderProgram::use();
     _vao->bind();
     glDrawArrays(GL_TRIANGLES, 0, _vtxBuf->size());
 }

@@ -24,8 +24,13 @@ void drawEntities();
 void R_Init (void)
 {
     glbinding::Binding::initialize();
+    
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CW);
+    glCullFace(GL_BACK);
 }
 
 void R_InitTextures (void)
@@ -183,6 +188,8 @@ void drawLevel()
 
 void drawEntities()
 {
+    ModelRenderer::beginRenderModels();
+
     for (int i = 0; i < cl_numvisedicts; ++i)
     {
         auto currentEntity = cl_visedicts[i];
@@ -212,4 +219,6 @@ void drawEntities()
             break;
         }
     }
+
+    ModelRenderer::endRenderModels();
 }
