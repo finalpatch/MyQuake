@@ -24,7 +24,7 @@ static SDL_Window*   win = NULL;
 static SDL_Renderer* ren = NULL;
 static SDL_Texture*  tex = NULL;
 
-static setupSurfaces(int w, int h)
+static void setupSurfaces(int w, int h)
 {
     renderBuffer.resize(w * h);
     warpBuffer.resize(w * h);
