@@ -11,7 +11,6 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(SDL2 REQUIRED)
 find_library(SDL2_MIXER_LIB SDL2_mixer)
 find_library(GLBINDING_LIB glbinding)
-find_library(ASSIMP_LIB assimp)
 string(STRIP ${SDL2_LIBRARIES} SDL2_LIBRARIES)
 
 # global include path
@@ -27,7 +26,7 @@ add_library(ren_soft STATIC ${REN_SOFT_SRC_LIST})
 # gl renderer
 aux_source_directory(src/ren_gl REN_GL_SRC_LIST)
 add_library(ren_gl STATIC ${REN_GL_SRC_LIST})
-target_link_libraries(ren_gl PUBLIC ${GLBINDING_LIB} ${ASSIMP_LIB})
+target_link_libraries(ren_gl PUBLIC ${GLBINDING_LIB})
 
 # main executable
 aux_source_directory(src SRC_LIST)
