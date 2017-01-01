@@ -233,12 +233,12 @@ void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
             if(surf[i].visframe != _visframecount)
                 continue;
 
-            auto baseidx = surf[i].vidx;
+            GLuint baseidx = surf[i].vidx;
             for (int j = 0; j < surf[i].numedges - 2; ++j)
             {
-                indexBuffer.push_back(baseidx++);
-                indexBuffer.push_back(baseidx++);
-                indexBuffer.push_back(baseidx++);
+                indexBuffer.insert(indexBuffer.end(), 
+                    {baseidx, baseidx+1, baseidx+2});
+                baseidx += 3;
             }
         }
 
