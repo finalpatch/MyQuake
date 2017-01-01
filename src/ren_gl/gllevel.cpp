@@ -65,13 +65,11 @@ LevelRenderer::LevelRenderer(const model_s* levelModel)
     std::vector<GLvec3> vertexBuffer;
     std::vector<GLvec3> normalBuffer;
 
-    int triangles = 0;
     for (int i = 0; i < levelModel->numsurfaces; ++i)
     {
-        const auto& surface = levelModel->surfaces[i];
+        auto& surface = levelModel->surfaces[i];
 
-        if (strcmp(surface.texinfo->texture->name, "trigger") == 0)
-            continue;
+        surface.vidx = vertexBuffer.size();
 
         int firstVertexIndex;
         int previousVertexIndex;
@@ -125,6 +123,7 @@ LevelRenderer::LevelRenderer(const model_s* levelModel)
 
     _vtxBuf = std::make_unique<GLBuffer<GLvec3>>(vertexBuffer.data(), vertexBuffer.size());
     _nrmBuf = std::make_unique<GLBuffer<GLvec3>>(normalBuffer.data(), normalBuffer.size());
+    _idxBuf = std::make_unique<GLBuffer<GLuint>>(nullptr, vertexBuffer.size(), GL_DYNAMIC_STORAGE_BIT);
 
     _vao = std::make_unique<VertexArray>();
 
@@ -135,15 +134,19 @@ LevelRenderer::LevelRenderer(const model_s* levelModel)
     _vao->enableAttrib(kVertexInputNormal);
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_TRUE);
     _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf, sizeof(GLvec3));
+    _vao->indexBuffer(*_idxBuf);
 }
 
 void LevelRenderer::render()
 {
-	auto viewleaf = Mod_PointInLeaf (r_origin, cl.worldmodel);
-    _oldviewleaf = viewleaf;
+	auto viewleaf = Mod_PointInLeaf(r_origin, cl.worldmodel);
+    markLeaves(viewleaf);
+
+    std::vector<GLuint> indexBuffer;
+    walkBspTree(cl.worldmodel->nodes, indexBuffer);
+    _idxBuf->update(indexBuffer.data(), indexBuffer.size());
 
     glm::vec3 origin = qvec2glm(cl_visedicts[0]->origin);
-
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);
     glm::mat4 model;
@@ -152,7 +155,7 @@ void LevelRenderer::render()
     LevelRenderProgram::setup(vid.width, vid.height, model, view);
     LevelRenderProgram::use();
     _vao->bind();
-    glDrawArrays(GL_TRIANGLES, 0, _vtxBuf->size());
+    glDrawElements(GL_TRIANGLES, indexBuffer.size(), GL_UNSIGNED_INT, nullptr);
 }
 
 void LevelRenderer::markLeaves (mleaf_s* viewleaf)
@@ -183,4 +186,62 @@ void LevelRenderer::markLeaves (mleaf_s* viewleaf)
 			} while (node);
 		}
 	}
+}
+
+void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
+{
+	if (node->contents == CONTENTS_SOLID)
+		return;		// solid
+
+	if (node->visframe != _visframecount)
+		return;
+
+    if (node->contents < 0) // leaf node
+    {
+		auto pleaf = (mleaf_t *)node;
+        for (int i = 0; i < pleaf->nummarksurfaces; ++i)
+            pleaf->firstmarksurface[i]->visframe = _visframecount;
+    }
+    else
+    {
+        auto plane = node->plane;
+        double dot;
+		switch (plane->type)
+		{
+		case PLANE_X:
+			dot = r_origin[0] - plane->dist;
+			break;
+		case PLANE_Y:
+			dot = r_origin[1] - plane->dist;
+			break;
+		case PLANE_Z:
+			dot = r_origin[2] - plane->dist;
+			break;
+		default:
+			dot = DotProduct (r_origin, plane->normal) - plane->dist;
+			break;
+		}	
+        int side = (dot >= 0) ? 0 : 1;
+
+        // visit near
+        walkBspTree(node->children[side], indexBuffer);
+        // visit far
+        walkBspTree(node->children[!side], indexBuffer);
+
+        // emit marked polygons
+        auto surf = cl.worldmodel->surfaces + node->firstsurface;
+        for (int i = 0; i < node->numsurfaces; ++i)
+        {
+            if(surf[i].visframe != _visframecount)
+                continue;
+
+            auto baseidx = surf[i].vidx;
+            for (int j = 0; j < surf[i].numedges - 2; ++j)
+            {
+                indexBuffer.push_back(baseidx++);
+                indexBuffer.push_back(baseidx++);
+                indexBuffer.push_back(baseidx++);
+            }
+        }
+    }
 }
