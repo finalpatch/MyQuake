@@ -225,8 +225,6 @@ void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
 
         // visit near
         walkBspTree(node->children[side], indexBuffer);
-        // visit far
-        walkBspTree(node->children[!side], indexBuffer);
 
         // emit marked polygons
         auto surf = cl.worldmodel->surfaces + node->firstsurface;
@@ -243,5 +241,8 @@ void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
                 indexBuffer.push_back(baseidx++);
             }
         }
+
+        // visit far
+        walkBspTree(node->children[!side], indexBuffer);
     }
 }
