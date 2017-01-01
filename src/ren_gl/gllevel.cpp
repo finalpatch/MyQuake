@@ -160,23 +160,19 @@ void LevelRenderer::render()
 
 void LevelRenderer::markLeaves (mleaf_s* viewleaf)
 {
-	byte	*vis;
-	mnode_t	*node;
-	int		i;
-
 	if (_oldviewleaf == viewleaf)
 		return;
 
 	_visframecount++;
 	_oldviewleaf = viewleaf;
 
-	vis = Mod_LeafPVS (viewleaf, cl.worldmodel);
+	auto vis = Mod_LeafPVS (viewleaf, cl.worldmodel);
 
-	for (i=0 ; i<cl.worldmodel->numleafs ; i++)
+	for (int i=0 ; i<cl.worldmodel->numleafs ; i++)
 	{
 		if (vis[i>>3] & (1<<(i&7)))
 		{
-			node = (mnode_t *)&cl.worldmodel->leafs[i+1];
+			auto node = (mnode_t *)&cl.worldmodel->leafs[i+1];
 			do
 			{
 				if (node->visframe == _visframecount)
