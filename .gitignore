@@ -1,2 +1,5 @@
 build
-id1
+id1/*.pak
+id1/music
+id1/autoexec.cfg
+id1/config.cfg
