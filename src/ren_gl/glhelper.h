@@ -245,6 +245,7 @@ public:
     void vertexBuffer(GLuint index, GLGenericBuffer& buf, GLsizei stride, GLintptr offset = 0)
     {
 #ifdef GL45
+        glVertexArrayAttribBinding(_handle, index, index);
         glVertexArrayVertexBuffer(_handle, index, buf.handle(), offset, stride);
 #else
         if (_formats.size() <= index)
