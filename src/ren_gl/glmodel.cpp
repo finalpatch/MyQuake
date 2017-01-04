@@ -1,10 +1,7 @@
 #include "glmodel.h"
+#include "glrenderprg.h"
 
 #include <algorithm>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 extern "C"
 {
@@ -13,55 +10,6 @@ extern "C"
 
 static float r_avertexnormals[][3] = {
     #include "anorms.h"
-};
-
-enum {
-    kVertexInputVertex = 0,
-    kVertexInputNormal = 1
-};
-
-class ModelRenderProgram
-{
-    struct UniformBlock
-    {
-        GLfloat model[4*4];
-        GLfloat view[4*4];
-        GLfloat projection[4*4];
-    };
-public:
-    static void setup(float w, float h, const glm::mat4& model, const glm::mat4& view)
-    {
-        auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 5000.0f);
-        UniformBlock uniformBlock;
-        memcpy(uniformBlock.model, glm::value_ptr(model), sizeof(uniformBlock.model));
-        memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
-        memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
-        getInstance()._ufmBuf->update(&uniformBlock);
-    }
-    static void use()
-    {
-        getInstance()._prog->use();
-        getInstance()._prog->setUniformBlock("TransformBlock", * getInstance()._ufmBuf);
-    }
-
-private:
-    ModelRenderProgram()
-    {
-        std::vector<Shader> shaders;
-        shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs.glsl"));
-        shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps.glsl"));
-        _prog = std::make_unique<RenderProgram>(shaders);
-        _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, kGlBufferDynamic);
-    }
-
-    static ModelRenderProgram& getInstance()
-    {
-        static ModelRenderProgram singleton;
-        return singleton;
-    }
-
-    std::unique_ptr<RenderProgram> _prog;
-    std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
 };
 
 static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices,
@@ -146,15 +94,6 @@ ModelRenderer::~ModelRenderer()
 {
 }
 
-void ModelRenderer::beginRenderModels()
-{
-    ModelRenderProgram::use();
-}
-
-void ModelRenderer::endRenderModels()
-{
-}
-
 void ModelRenderer::render(int frameId, float time, const float* origin, const float* angles)
 {
     glm::vec3 eyePos = qvec2glm(r_origin);
@@ -162,12 +101,12 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
     glm::vec3 pos = qvec2glm(origin);
     glm::mat4 model = 
         glm::translate(glm::mat4(), pos)
-        * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1})
         * glm::rotate(glm::mat4(), glm::radians(angles[1]), {0, 1, 0})
-        * glm::rotate(glm::mat4(), glm::radians(angles[0]), {1, 0, 0});
+        * glm::rotate(glm::mat4(), glm::radians(angles[0]), {1, 0, 0})
+        * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1});
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
-    ModelRenderProgram::setup(vid.width, vid.height, model, view);
+    QuakeRenderProgram::setup(vid.width, vid.height, model, view);
     _vao->bind();
     auto offset = _frames[frameId]->getVertexOffset(time);
     glDrawElementsBaseVertex(GL_TRIANGLES, _idxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);

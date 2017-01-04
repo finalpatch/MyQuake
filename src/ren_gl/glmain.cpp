@@ -3,7 +3,9 @@
 #include <unordered_map>
 
 #include "glmodel.h"
+#include "glbrushmdl.h"
 #include "gllevel.h"
+#include "glrenderprg.h"
 
 extern "C"
 {
@@ -16,6 +18,7 @@ qboolean r_cache_thrash = qfalse;
 }
 
 std::unordered_map<model_t*, std::unique_ptr<ModelRenderer>> modelRenderers;
+std::unordered_map<model_t*, std::unique_ptr<BrushModelRenderer>> brushModelRenderers;
 std::unique_ptr<LevelRenderer> levelRenderer;
 
 void drawLevel();
@@ -54,6 +57,7 @@ void R_RenderView (void)
     glClearBufferfv(GL_COLOR, 0, bgColor);
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
 
+    QuakeRenderProgram::use();
     drawLevel();
     drawEntities();
 }
@@ -83,11 +87,12 @@ void R_NewMap (void)
     levelRenderer = std::make_unique<LevelRenderer>(cl.worldmodel);
 
     modelRenderers.clear();
+    brushModelRenderers.clear();
 
     for (int i = 0; i < MAX_MODELS; ++i)
     {
         auto model = cl.model_precache[i];
-        if (model == nullptr)
+        if (model == nullptr || model == cl.worldmodel)
             continue;
         if (model->type == mod_alias)
         {
@@ -96,7 +101,8 @@ void R_NewMap (void)
         }
         else if (model->type == mod_brush)
         {
-
+            Con_Printf("load model %d: %s\n", i, model->name);
+            brushModelRenderers.emplace(model, std::make_unique<BrushModelRenderer>(model));
         }
     }
 }
@@ -188,8 +194,6 @@ void drawLevel()
 
 void drawEntities()
 {
-    ModelRenderer::beginRenderModels();
-
     for (int i = 0; i < cl_numvisedicts; ++i)
     {
         auto currentEntity = cl_visedicts[i];
@@ -199,6 +203,20 @@ void drawEntities()
             continue;
 		switch (currentEntity->model->type)
 		{
+        case mod_brush:
+            {
+                auto model = currentEntity->model;
+                if (model == cl.worldmodel)
+                    break;
+                auto& modelRenderer = brushModelRenderers[model];
+                if (modelRenderer)
+                {
+                    modelRenderer->render(
+                        currentEntity->origin,
+                        currentEntity->angles);
+                }
+            }
+            break;
 		case mod_sprite:
             break;
 		case mod_alias:
@@ -219,6 +237,4 @@ void drawEntities()
             break;
         }
     }
-
-    ModelRenderer::endRenderModels();
 }

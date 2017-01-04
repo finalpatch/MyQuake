@@ -49,9 +49,6 @@ public:
     ModelRenderer(const model_s* entityModel);
     virtual ~ModelRenderer();
 
-    static void beginRenderModels();
-    static void endRenderModels();
-
     void render(int frameId, float time, const float* origin, const float* angles);
 
 private:
