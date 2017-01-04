@@ -41,11 +41,6 @@ void R_InitTextures (void)
 
 }
 
-void R_InitEfrags (void)
-{
-
-}
-
 void R_RenderView (void)
 {
     // sound output uses these
@@ -72,15 +67,15 @@ void R_InitSky (struct texture_s *mt)
 
 }
 
-void R_AddEfrags (entity_t *ent)
-{
+// void R_AddEfrags (entity_t *ent)
+// {
 
-}
+// }
 
-void R_RemoveEfrags (entity_t *ent)
-{
+// void R_RemoveEfrags (entity_t *ent)
+// {
 
-}
+// }
 
 void R_NewMap (void)
 {
@@ -197,7 +192,7 @@ void drawEntities()
     for (int i = 0; i < cl_numvisedicts; ++i)
     {
         auto currentEntity = cl_visedicts[i];
-        if (currentEntity == &cl_entities[cl.viewentity])
+        if (currentEntity == &cl_entities[cl.viewentity]) // player
             continue;
         if (!currentEntity->model)
             continue;

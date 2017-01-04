@@ -87,6 +87,7 @@ LevelRenderer::LevelRenderer(const model_s* levelModel)
 
 void LevelRenderer::render()
 {
+    _framecount++;
 	auto viewleaf = Mod_PointInLeaf(r_origin, cl.worldmodel);
     markLeaves(viewleaf);
 
@@ -131,6 +132,42 @@ void LevelRenderer::markLeaves (mleaf_s* viewleaf)
 	}
 }
 
+void LevelRenderer::storeEfrags (efrag_s **ppefrag)
+{
+	entity_t	*pent;
+	model_t		*clmodel;
+	efrag_t		*pefrag;
+
+	while ((pefrag = *ppefrag) != NULL)
+	{
+		pent = pefrag->entity;
+		clmodel = pent->model;
+
+		switch (clmodel->type)
+		{
+		case mod_alias:
+		case mod_brush:
+		case mod_sprite:
+			pent = pefrag->entity;
+
+			if ((pent->visframe != _framecount) &&
+				(cl_numvisedicts < MAX_VISEDICTS))
+			{
+				cl_visedicts[cl_numvisedicts++] = pent;
+
+			// mark that we've recorded this entity for this frame
+				pent->visframe = _framecount;
+			}
+
+			ppefrag = &pefrag->leafnext;
+			break;
+
+		default:	
+			Sys_Error ("R_StoreEfrags: Bad entity type %d\n", clmodel->type);
+		}
+	}
+}
+
 void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
 {
 	if (node->contents == CONTENTS_SOLID)
@@ -144,6 +181,9 @@ void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
 		auto pleaf = (mleaf_t *)node;
         for (int i = 0; i < pleaf->nummarksurfaces; ++i)
             pleaf->firstmarksurface[i]->visframe = _visframecount;
+        
+        if (pleaf->efrags)
+            storeEfrags(&pleaf->efrags);
     }
     else
     {
