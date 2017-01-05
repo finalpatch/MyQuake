@@ -23,6 +23,7 @@ std::unique_ptr<LevelRenderer> levelRenderer;
 
 void drawLevel();
 void drawEntities();
+void drawWeapon();
 
 void R_Init (void)
 {
@@ -55,6 +56,7 @@ void R_RenderView (void)
     QuakeRenderProgram::use();
     drawLevel();
     drawEntities();
+    drawWeapon();
 }
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
@@ -66,16 +68,6 @@ void R_InitSky (struct texture_s *mt)
 {
 
 }
-
-// void R_AddEfrags (entity_t *ent)
-// {
-
-// }
-
-// void R_RemoveEfrags (entity_t *ent)
-// {
-
-// }
 
 void R_NewMap (void)
 {
@@ -232,4 +224,17 @@ void drawEntities()
             break;
         }
     }
+}
+
+void drawWeapon()
+{
+    auto entity = &cl.viewent;
+    auto model = entity->model;
+    if (!model)
+        return;
+    auto& renderer = modelRenderers[model];
+    if (!renderer)
+        return;
+    renderer->render(entity->frame, cl.time + entity->syncbase,
+        entity->origin, entity->angles);
 }

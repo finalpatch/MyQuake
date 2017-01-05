@@ -99,11 +99,13 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);
     glm::vec3 pos = qvec2glm(origin);
-    glm::mat4 model = 
+
+    glm::mat4 model =
         glm::translate(glm::mat4(), pos)
-        * glm::rotate(glm::mat4(), glm::radians(angles[1]), {0, 1, 0})
-        * glm::rotate(glm::mat4(), glm::radians(angles[0]), {1, 0, 0})
-        * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1});
+        * glm::rotate(glm::mat4(), glm::radians(angles[YAW]),   {0, 1, 0})
+        * glm::rotate(glm::mat4(), glm::radians(angles[PITCH]), {0, 0, 1})
+        * glm::rotate(glm::mat4(), glm::radians(angles[ROLL]),  {1, 0, 0})
+        ;
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
     QuakeRenderProgram::setup(vid.width, vid.height, model, view);
