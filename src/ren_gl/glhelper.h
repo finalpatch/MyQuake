@@ -328,6 +328,14 @@ public:
     {
         return _target;
     }
+    GLuint width() const
+    {
+        return _width;
+    }
+    GLuint height() const
+    {
+        return _height;
+    }
     void update(GLint x, GLint y, GLuint w, GLuint h, const GLvoid* data)
     {
         glBindTexture(_target, _handle);
@@ -337,20 +345,56 @@ public:
 
 class TextureBinding
 {
-    GLenum _boundUnit;
+    const GLenum _boundUnit;
     const Texture& _texture;
 public:
     TextureBinding(const Texture& texture, GLenum textureUnit = GL_TEXTURE0) :
-        _texture(texture)
+        _boundUnit(textureUnit), _texture(texture)
     {
         glActiveTexture(textureUnit);
         glBindTexture(texture.target(), texture.handle());
-        _boundUnit = textureUnit;
     }
     TextureBinding(const TextureBinding&) = delete;
     ~TextureBinding()
     {
         glActiveTexture(_boundUnit);
         glBindTexture(_texture.target(), 0);
+    }
+};
+
+class TextureAtlas : public Texture
+{
+public:
+    class SubTexture
+    {
+        const int _x, _y, _w, _h;
+        const TextureAtlas& _parentTexture;
+    public:
+        SubTexture(const TextureAtlas& parentTexture, int x, int y, int w, int h) :
+            _parentTexture(parentTexture), _x(x), _y(y), _w(w), _h(h)
+        {
+        }
+        const TextureAtlas& parentTexture() const
+        {
+            return _parentTexture;
+        }
+        void translateCoordinate(float& u, float& v) const
+        {
+            float s = (u * _w + _x) / _parentTexture.width();
+            float t = (v * _h + _y) / _parentTexture.height();
+            u = s;
+            v = t;
+        }
+    };
+
+    TextureAtlas(GLenum target, GLuint width, GLuint height, Type type) :
+        Texture(target, width, height, type, nullptr)
+    {
+    }
+    TextureAtlas(TextureAtlas&& other) : Texture(std::move(other))
+    {}
+    SubTexture addImage()
+    {
+        return {*this, 0, 0, 1, 1};
     }
 };
