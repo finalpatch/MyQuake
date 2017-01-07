@@ -210,7 +210,9 @@ public:
         bind();
 #endif
     }
-    VertexArray(VertexArray&& other) : GLObject(std::move(other))
+    VertexArray(VertexArray&& other) :
+        GLObject(std::move(other)),
+        _formats(std::move(other._formats))
     {
     }
     ~VertexArray() override
@@ -270,5 +272,85 @@ public:
     void bind()
     {
         glBindVertexArray(_handle);
+    }
+};
+
+class Texture : public GLObject
+{
+    GLenum _target;
+    GLint _internalFormat;
+    GLenum _format;
+    GLenum _datatype;
+    GLuint _width;
+    GLuint _height;
+public:
+    enum Type
+    {
+        RGBA,
+        GRAY
+    };
+    Texture(GLenum target, GLuint width, GLuint height, Type type, const GLvoid* data = nullptr)
+    {
+        glGenTextures(1, &_handle);
+        if (type == RGBA)
+        {
+            _internalFormat = (GLint)GL_RGBA8; //GL_SRGB8_ALPHA8
+            _format = GL_RGBA;
+            _datatype = GL_UNSIGNED_INT_8_8_8_8;
+        }
+        else
+        {
+            _internalFormat = (GLint)GL_R8;
+            _format = GL_RED;
+            _datatype = GL_UNSIGNED_BYTE;
+        }
+        _width = width;
+        _height = height;
+        
+        glBindTexture(_target, _handle);
+        glTexImage2D(_target, 0, _internalFormat, width, height, 0, _format, _datatype, data);
+    }
+    Texture(Texture&& other) : GLObject(std::move(other))
+    {
+        _target = other._target;
+        _internalFormat = other._internalFormat;
+        _format = other._format;
+        _datatype = other._datatype;
+        _width = other._width;
+        _height = other._height;
+    }
+    ~Texture() override
+    {
+        if (_handle)
+            glDeleteTextures(1, &_handle);
+    }
+    GLenum target() const
+    {
+        return _target;
+    }
+    void update(GLint x, GLint y, GLuint w, GLuint h, const GLvoid* data)
+    {
+        glBindTexture(_target, _handle);
+        glTexSubImage2D(_target, 0, x, y, w, h, _format, _datatype, data);
+    }
+};
+
+class TextureBinding
+{
+    GLenum _boundUnit;
+    const Texture& _texture;
+public:
+    TextureBinding(const Texture& texture, GLenum textureUnit = GL_TEXTURE0) :
+        _texture(texture)
+    {
+        glActiveTexture(textureUnit);
+        glBindTexture(texture.target(), texture.handle());
+        _boundUnit = textureUnit;
+    }
+    TextureBinding(const TextureBinding&) = delete;
+    ~TextureBinding()
+    {
+        glActiveTexture(_boundUnit);
+        glBindTexture(_texture.target(), 0);
     }
 };
