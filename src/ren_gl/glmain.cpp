@@ -17,6 +17,15 @@ texture_s* r_notexture_mip = nullptr;
 qboolean r_cache_thrash = qfalse;
 }
 
+/*
+ TODO:
+ * Light maps
+ * Diffuse maps
+ * Procedural textures
+ * Particals
+ * Dynamic lighting
+ */
+
 std::unordered_map<model_t*, std::unique_ptr<ModelRenderer>> modelRenderers;
 std::unordered_map<model_t*, std::unique_ptr<BrushModelRenderer>> brushModelRenderers;
 std::unique_ptr<LevelRenderer> levelRenderer;
@@ -44,6 +53,12 @@ void R_InitTextures (void)
 
 void R_RenderView (void)
 {
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CW);
+    glCullFace(GL_BACK);
     // sound output uses these
    	VectorCopy(r_refdef.vieworg, r_origin);
 	AngleVectors (r_refdef.viewangles, vpn, vright, vup);
