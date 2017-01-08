@@ -362,6 +362,43 @@ public:
     }
 };
 
+class Image
+{
+    GLuint _bpp;
+    GLuint _w, _h;
+    std::vector<uint8_t> _data;
+public:
+    Image(GLuint bytesPerPixel, GLuint width, GLuint height, const void* data) :
+        _bpp(bytesPerPixel), _w(width), _h(height),
+        _data(_bpp * _w * _h)
+    {
+        if (data)
+            memcpy(_data.data(), data, _data.size());
+    }
+    GLuint bpp() const
+    {
+        return _bpp;
+    }
+    GLuint width() const
+    {
+        return _w;
+    }
+    GLuint height() const
+    {
+        return _h;
+    }
+    const void* row(GLuint r) const
+    {
+        GLuint rowbytes = _w * _bpp;
+        return rowbytes * r + _data.data();
+    }
+    void* row(GLuint r)
+    {
+        GLuint rowbytes = _w * _bpp;
+        return rowbytes * r + _data.data();
+    }
+};
+
 class TextureAtlas : public Texture
 {
 public:
