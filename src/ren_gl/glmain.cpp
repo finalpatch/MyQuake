@@ -3,7 +3,6 @@
 #include <unordered_map>
 
 #include "glmodel.h"
-#include "glbrushmdl.h"
 #include "gllevel.h"
 #include "glrenderprg.h"
 
@@ -27,7 +26,7 @@ qboolean r_cache_thrash = qfalse;
  */
 
 std::unordered_map<model_t*, std::unique_ptr<ModelRenderer>> modelRenderers;
-std::unordered_map<model_t*, std::unique_ptr<BrushModelRenderer>> brushModelRenderers;
+std::unordered_map<model_t*, LevelRenderer::Submodel> submodels;
 std::unique_ptr<LevelRenderer> levelRenderer;
 
 void drawLevel();
@@ -68,7 +67,7 @@ void R_RenderView (void)
     glClearBufferfv(GL_COLOR, 0, bgColor);
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
 
-    QuakeRenderProgram::use();
+    QuakeRenderProgram::getInstance().use();
     drawLevel();
     drawEntities();
     drawWeapon();
@@ -86,27 +85,33 @@ void R_InitSky (struct texture_s *mt)
 
 void R_NewMap (void)
 {
-    levelRenderer = std::make_unique<LevelRenderer>(cl.worldmodel);
+    levelRenderer = std::make_unique<LevelRenderer>();
 
     modelRenderers.clear();
-    brushModelRenderers.clear();
+    submodels.clear();
 
     for (int i = 0; i < MAX_MODELS; ++i)
     {
         auto model = cl.model_precache[i];
-        if (model == nullptr || model == cl.worldmodel)
+        if (model == nullptr)
             continue;
-        if (model->type == mod_alias)
+        if (model->type == mod_brush)
         {
-            Con_Printf("load model %d: %s\n", i, model->name);
+            if (submodels.find(model) == submodels.end())
+            {
+                Con_Printf("load brush model %d: %s\n", i, model->name);
+                auto submodel = levelRenderer->loadBrushModel(model);
+                submodels.emplace(model, submodel);
+            }
+        }
+        else if (model->type == mod_alias)
+        {
+            Con_Printf("load alias model %d: %s\n", i, model->name);
             modelRenderers.emplace(model, std::make_unique<ModelRenderer>(model));
         }
-        else if (model->type == mod_brush)
-        {
-            Con_Printf("load model %d: %s\n", i, model->name);
-            brushModelRenderers.emplace(model, std::make_unique<BrushModelRenderer>(model));
-        }
     }
+
+    levelRenderer->build();
 }
 
 void R_ParseParticleEffect (void)
@@ -191,7 +196,7 @@ void R_SetVrect (vrect_t *pvrect, vrect_t *pvrectin, int lineadj)
 // ************************************************************************
 void drawLevel()
 {
-    levelRenderer->render();
+    levelRenderer->renderWorld();
 }
 
 void drawEntities()
@@ -210,13 +215,11 @@ void drawEntities()
                 auto model = currentEntity->model;
                 if (model == cl.worldmodel)
                     break;
-                auto& modelRenderer = brushModelRenderers[model];
-                if (modelRenderer)
-                {
-                    modelRenderer->render(
+                const auto& submodel = submodels[model];
+                levelRenderer->renderSubmodel(
+                        submodel,
                         currentEntity->origin,
                         currentEntity->angles);
-                }
             }
             break;
 		case mod_sprite:

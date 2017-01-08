@@ -399,7 +399,7 @@ public:
     {
         return _data.data() + r * _w;
     }
-    void* row(GLuint r)
+    T* row(GLuint r)
     {
         return _data.data() + r * _w;
     }
@@ -408,28 +408,17 @@ public:
 // a tile inside a texture atlas
 class TextureTile
 {
-    int _x, _y, _w, _h;
-    int _parentW, _parentH;
-
-    void set(int x, int y, int w, int h, int parentW, int parentH)
-    {
-        _x = x; _y = y;
-        _w = w; _h = h;
-        _parentW = parentW;
-        _parentH = parentH;
-    }
+    const GLint _x, _y;
+    const GLuint _w, _h, _parentW, _parentH;
 public:
-    TextureTile()
+    TextureTile(GLint x, GLint y, GLuint w, GLuint h, GLuint parentW, GLuint parentH) :
+        _x(x), _y(y), _w(w), _h(h), _parentW(parentW), _parentH(parentH)
     {
-        set(0, 0, 0, 0, 0, 0);
     }
-    TextureTile(int x, int y, int w, int h, int parentW, int parentH)
-    {
-        set(x, y, w, h, parentW, parentH);
-    }
-    // default copy and assign
+
     TextureTile(const TextureTile&) = default;
-    TextureTile& operator = (const TextureTile& other) = default;
+
+    bool empty() const { return _w == 0 || _h == 0; }
 
     void translateCoordinate(float& u, float& v) const
     {
@@ -460,13 +449,17 @@ class TextureAtlasBuilder
     Image<PixelType> _textureImage;
     const GLuint _padding;
     
-    const static int kMinRowHeight = 16;
+    enum { kMinRowHeight = 16 };
     struct Row
     {
-        int _x, _y, _w, _h; // free space
+        GLint _x, _y;
+        GLuint _w, _h; // free space
+        Row(GLint x, GLint y, GLuint w, GLuint h) :
+        _x(x), _y(y), _w(w), _h(h)
+        {}
     };
     std::vector<Row> _rows;
-    int _freeTop = 0;
+    GLuint _freeTop = 0;
 public:
     TextureAtlasBuilder(GLuint size, GLuint padding) :
         _textureImage(size, size, nullptr), _padding(padding)
@@ -474,25 +467,25 @@ public:
 
     TextureTile addImage(const Image<PixelType>& image)
     {
-        const int w = image.width();
-        const int h = image.width();
-        const int paddedW = w + _padding * 2;
-        const int paddedH = h + _padding * 2;
+        const GLuint w = image.width();
+        const GLuint h = image.height();
+        const GLuint paddedW = w + _padding * 2;
+        const GLuint paddedH = h + _padding * 2;
 
         //search for an allocated row that can fit
         auto i = _rows.begin();
         for (; i != _rows.end(); ++i)
         {
-            if (i->_w >= paddedW || i->_h >= paddedH)
+            if (i->_w >= paddedW && i->_h >= paddedH)
                 break;
         }
 
-        int paddedX, paddedY;
+        GLint paddedX, paddedY;
 
         if (i == _rows.end()) // no existing allocation fits this
         {
-            int top = _freeTop;
-            int allocH = std::max(kMinRowHeight, paddedH);
+            GLuint top = _freeTop;
+            GLuint allocH = std::max((GLuint)kMinRowHeight, paddedH);
             _freeTop += allocH;
             assert(_freeTop < _textureImage.height());
             // allocate a new row
@@ -508,30 +501,30 @@ public:
             i->_w -= paddedW;            
         }
 
-        int x = paddedX + _padding;
-        int y = paddedY + _padding;
+        GLint x = paddedX + _padding;
+        GLint y = paddedY + _padding;
 
         // now fill the subimage
         auto copyLinePadded = [] (auto* dst, const auto* src, int w, GLuint padding)
             {
                 auto leftPadding = src[0];
-                for (int i = 0; i < padding; ++i)
+                for (GLuint i = 0; i < padding; ++i)
                     *dst++ = leftPadding;
-                for (int i = 0; i < w; ++i)
+                for (GLuint i = 0; i < w; ++i)
                     *dst++ = *src++;
                 auto rightPadding = src[-1];
-                for (int i = 0; i < padding; ++i)
+                for (GLuint i = 0; i < padding; ++i)
                     *dst++ = rightPadding;
             };
 
         // top padding
-        for (int i = 0; i < _padding; ++i)
+        for (GLuint i = 0; i < _padding; ++i)
             copyLinePadded(_textureImage.row(paddedY + i) + paddedX, image.row(0), w, _padding);
         // image
-        for (int i = 0; i < h; ++i)
+        for (GLuint i = 0; i < h; ++i)
             copyLinePadded(_textureImage.row(y+i) + paddedX, image.row(i), w, _padding);
         // bottom padding
-        for (int i = 0; i < _padding; ++i)
+        for (GLuint i = 0; i < _padding; ++i)
             copyLinePadded(_textureImage.row(y + h + i) + paddedX, image.row(h-1), w, _padding);
 
         return {x, y, w, h, _textureImage.width(), _textureImage.height()};
