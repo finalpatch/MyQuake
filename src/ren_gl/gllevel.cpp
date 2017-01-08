@@ -8,16 +8,24 @@ extern "C"
 #include "quakedef.h"
 }
 
+const static GLuint kLightmapAtlasSize = 2048;
+const static GLuint kLightmapAtlasPadding = 1;
+
 LevelRenderer::LevelRenderer(const model_s* levelModel)
 {
     std::vector<GLvec3> vertexBuffer;
     std::vector<GLvec3> normalBuffer;
+    
+    TextureAtlasBuilder<Texture::GRAY> lightmapBuilder(kLightmapAtlasSize, kLightmapAtlasPadding);
 
     for (int i = 0; i < levelModel->numsurfaces; ++i)
     {
         auto& surface = levelModel->surfaces[i];
 
-        surface.vidx = vertexBuffer.size();
+        surface.rendererInfo = _rendererInfoArray.size();        
+        RendererInfo surfaceRendererInfo;
+        surfaceRendererInfo.vertexIndex = vertexBuffer.size();
+        _rendererInfoArray.push_back(surfaceRendererInfo);
 
         int firstVertexIndex;
         int previousVertexIndex;
@@ -83,6 +91,8 @@ LevelRenderer::LevelRenderer(const model_s* levelModel)
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_TRUE);
     _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf, sizeof(GLvec3));
     _vao->indexBuffer(*_idxBuf);
+
+    _lightmap = lightmapBuilder.build(GL_TEXTURE_2D);
 }
 
 void LevelRenderer::render()
@@ -216,7 +226,7 @@ void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
             if(surf[i].visframe != _visframecount)
                 continue;
 
-            GLuint baseidx = surf[i].vidx;
+            GLuint baseidx = _rendererInfoArray[surf[i].rendererInfo].vertexIndex;
             for (int j = 0; j < surf[i].numedges - 2; ++j)
             {
                 indexBuffer.insert(indexBuffer.end(), 

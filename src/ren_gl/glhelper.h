@@ -309,6 +309,11 @@ public:
         
         glBindTexture(_target, _handle);
         glTexImage2D(_target, 0, _internalFormat, width, height, 0, _format, _datatype, data);
+        
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
     Texture(Texture&& other) : GLObject(std::move(other))
     {
@@ -400,6 +405,41 @@ public:
     }
 };
 
+// a tile inside a texture atlas
+class TextureTile
+{
+    int _x, _y, _w, _h;
+    int _parentW, _parentH;
+
+    void set(int x, int y, int w, int h, int parentW, int parentH)
+    {
+        _x = x; _y = y;
+        _w = w; _h = h;
+        _parentW = parentW;
+        _parentH = parentH;
+    }
+public:
+    TextureTile()
+    {
+        set(0, 0, 0, 0, 0, 0);
+    }
+    TextureTile(int x, int y, int w, int h, int parentW, int parentH)
+    {
+        set(x, y, w, h, parentW, parentH);
+    }
+    // default copy and assign
+    TextureTile(const TextureTile&) = default;
+    TextureTile& operator = (const TextureTile& other) = default;
+
+    void translateCoordinate(float& u, float& v) const
+    {
+        float s = (u * _w + _x) / _parentW;
+        float t = (v * _h + _y) / _parentH;
+        u = s;
+        v = t;
+    }
+};
+
 template <Texture::Type TYPE>
 struct TextureTypeTraits {};
 template <>
@@ -428,31 +468,11 @@ class TextureAtlasBuilder
     std::vector<Row> _rows;
     int _freeTop = 0;
 public:
-    class SubTexture
-    {
-        const int _x, _y, _w, _h;
-        const int _parentW, _parentH;
-    public:
-        SubTexture(int x, int y, int w, int h, int parentW, int parentH) :
-            _x(x), _y(y), _w(w), _h(h), _parentW(parentW), _parentH(parentH)
-        {
-        }
-        SubTexture(const SubTexture&) = default;
-        void translateCoordinate(float& u, float& v) const
-        {
-            float s = (u * _w + _x) / _parentW;
-            float t = (v * _h + _y) / _parentH;
-            u = s;
-            v = t;
-        }
-    };
+    TextureAtlasBuilder(GLuint size, GLuint padding) :
+        _textureImage(size, size, nullptr), _padding(padding)
+    {}
 
-    TextureAtlasBuilder(GLuint width, GLuint height, GLuint padding) :
-        _textureImage(width, height, nullptr), _padding(padding)
-    {
-    }
-
-    SubTexture addImage(const Image<PixelType>& image)
+    TextureTile addImage(const Image<PixelType>& image)
     {
         const int w = image.width();
         const int h = image.width();
@@ -519,7 +539,7 @@ public:
 
     std::unique_ptr<Texture> build(GLenum target)
     {
-        auto texture = std::make_unique<Texture>(target, _textureImage.width(), _textureImage.height(), TYPE, _textureImage.data());
+        auto texture = std::make_unique<Texture>(target, _textureImage.width(), _textureImage.height(), TYPE, _textureImage.row(0));
         return std::move(texture);
     }
 };

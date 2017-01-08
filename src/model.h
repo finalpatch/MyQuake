@@ -124,8 +124,8 @@ typedef struct msurface_s
 	byte		styles[MAXLIGHTMAPS];
 	byte		*samples;		// [numstyles*surfsize]
 
-// vertex index for the GL renderer
-	int         vidx;
+// renderer specific data
+	uintptr_t   rendererInfo;
 } msurface_t;
 
 typedef struct mnode_s
