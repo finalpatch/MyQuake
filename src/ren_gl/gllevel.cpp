@@ -106,7 +106,13 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
                               surface.texinfo->vecs[1][3] -
                               surface.texturemins[1];
                     
-                    s /= 16; t /= 16;
+                    // convert to lightmap coordinate
+                    // lightmap is 1/16 res
+                    // don't know why it needs the +1
+                    // but otherwise the positions doesn't look right'
+                    s = s / 16 + 1;
+                    t = t / 16 + 1;
+
                     if (!surfaceRendererInfo.lightmaps.empty())
                     {
                         surfaceRendererInfo.lightmaps[0].translateCoordinate(s, t);
@@ -168,6 +174,8 @@ void LevelRenderer::renderSubmodel(const Submodel& submodel, const float* origin
         * glm::rotate(glm::mat4(), glm::radians(angles[0]), {1, 0, 0})
         * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1});
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
+
+    TextureBinding lightmapBinding(*_lightmap, GL_TEXTURE0);
 
     QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view);
     _vao->bind();
