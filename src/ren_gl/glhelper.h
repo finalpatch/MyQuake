@@ -10,6 +10,7 @@
     using namespace gl33core;
 #endif
 
+using GLvec2 = std::array<GLfloat, 2>;
 using GLvec3 = std::array<GLfloat, 3>;
 using GLvec4 = std::array<GLfloat, 4>;
 using GLmat3 = std::array<GLfloat, 3 * 3>;
@@ -291,6 +292,7 @@ public:
     };
     Texture(GLenum target, GLuint width, GLuint height, Type type, const GLvoid* data = nullptr)
     {
+        _target = target;
         glGenTextures(1, &_handle);
         if (type == RGBA)
         {
@@ -422,8 +424,8 @@ public:
 
     void translateCoordinate(float& u, float& v) const
     {
-        float s = (u * _w + _x) / _parentW;
-        float t = (v * _h + _y) / _parentH;
+        float s = (u + _x) / _parentW;
+        float t = (v + _y) / _parentH;
         u = s;
         v = t;
     }
@@ -530,9 +532,9 @@ public:
         return {x, y, w, h, _textureImage.width(), _textureImage.height()};
     }
 
-    std::unique_ptr<Texture> build(GLenum target)
+    std::unique_ptr<Texture> build()
     {
-        auto texture = std::make_unique<Texture>(target, _textureImage.width(), _textureImage.height(), TYPE, _textureImage.row(0));
+        auto texture = std::make_unique<Texture>(GL_TEXTURE_2D, _textureImage.width(), _textureImage.height(), TYPE, _textureImage.row(0));
         return std::move(texture);
     }
 };

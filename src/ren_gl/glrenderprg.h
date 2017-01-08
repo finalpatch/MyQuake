@@ -7,8 +7,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 enum {
-    kVertexInputVertex = 0,
-    kVertexInputNormal = 1
+    kVertexInputVertex   = 0,
+    kVertexInputNormal   = 1,
+    kVertexInputTexCoord = 2
 };
 
 class QuakeRenderProgram
@@ -18,7 +19,7 @@ class QuakeRenderProgram
         GLfloat model[4*4];
         GLfloat view[4*4];
         GLfloat projection[4*4];
-        
+
         GLfloat constLight = 0.0f;
     };
 public:

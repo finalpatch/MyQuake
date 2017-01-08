@@ -39,6 +39,7 @@ private:
     std::unique_ptr<VertexArray> _vao;
     std::unique_ptr<GLBuffer<GLvec3>> _vtxBuf;
     std::unique_ptr<GLBuffer<GLvec3>> _nrmBuf;
+    std::unique_ptr<GLBuffer<GLvec2>> _uvBuf;
     std::unique_ptr<GLBuffer<GLuint>> _idxBuf;
 
     // textures
@@ -47,6 +48,7 @@ private:
     // builders
     std::vector<GLvec3> _vertexBuffer;
     std::vector<GLvec3> _normalBuffer;
+    std::vector<GLvec2> _texCoordBuffer;
     std::unique_ptr<TextureAtlasBuilder<Texture::GRAY>> _lightmapBuilder;
 
     void markLeaves (mleaf_s* viewleaf);

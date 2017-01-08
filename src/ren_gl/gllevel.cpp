@@ -78,21 +78,41 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
             }
             else
             {
-                glm::vec3 v0 = qvec2glm(brushModel->vertexes[firstVertexIndex].position);
-                glm::vec3 v1 = qvec2glm(brushModel->vertexes[previousVertexIndex].position);
-                glm::vec3 v2 = qvec2glm(brushModel->vertexes[currentVertexIndex].position);
-
-                _vertexBuffer.emplace_back(GLvec3{v0[0], v0[1], v0[2]});
-                _vertexBuffer.emplace_back(GLvec3{v1[0], v1[1], v1[2]});
-                _vertexBuffer.emplace_back(GLvec3{v2[0], v2[1], v2[2]});
-
+                glm::vec3 v[3] = {
+                    qvec2glm(brushModel->vertexes[firstVertexIndex].position),
+                    qvec2glm(brushModel->vertexes[previousVertexIndex].position),
+                    qvec2glm(brushModel->vertexes[currentVertexIndex].position)
+                };
                 glm::vec3 n = glm::normalize(qvec2glm(surface.plane->normal));
                 if (surface.flags & SURF_PLANEBACK)
                     n *= -1;
 
-                _normalBuffer.emplace_back(GLvec3{n[0], n[1], n[2]});
-                _normalBuffer.emplace_back(GLvec3{n[0], n[1], n[2]});
-                _normalBuffer.emplace_back(GLvec3{n[0], n[1], n[2]});
+                for (int i = 0; i < 3; ++i) 
+                {
+                    // vertex
+                    _vertexBuffer.emplace_back(GLvec3{v[i][0], v[i][1], v[i][2]});
+                    // surface normal
+                    _normalBuffer.emplace_back(GLvec3{n[0], n[1], n[2]});
+
+                    // texture coordinate
+                    auto s =  v[i][0] * surface.texinfo->vecs[0][0] +
+                             -v[i][2] * surface.texinfo->vecs[0][1] +
+                              v[i][1] * surface.texinfo->vecs[0][2] +
+                              surface.texinfo->vecs[0][3] -
+                              surface.texturemins[0];
+                    auto t =  v[i][0] * surface.texinfo->vecs[1][0] +
+                             -v[i][2] * surface.texinfo->vecs[1][1] +
+                              v[i][1] * surface.texinfo->vecs[1][2] +
+                              surface.texinfo->vecs[1][3] -
+                              surface.texturemins[1];
+                    
+                    s /= 16; t /= 16;
+                    if (!surfaceRendererInfo.lightmaps.empty())
+                    {
+                        surfaceRendererInfo.lightmaps[0].translateCoordinate(s, t);
+                    }
+                    _texCoordBuffer.emplace_back(GLvec2{s, t});
+                }
 
                 previousVertexIndex = currentVertexIndex;
             }
@@ -107,6 +127,7 @@ void LevelRenderer::build()
 {
     _vtxBuf = std::make_unique<GLBuffer<GLvec3>>(_vertexBuffer.data(), _vertexBuffer.size());
     _nrmBuf = std::make_unique<GLBuffer<GLvec3>>(_normalBuffer.data(), _normalBuffer.size());
+    _uvBuf  = std::make_unique<GLBuffer<GLvec2>>(_texCoordBuffer.data(), _texCoordBuffer.size());
     _idxBuf = std::make_unique<GLBuffer<GLuint>>(nullptr, _vertexBuffer.size(), kGlBufferDynamic);
 
     _vao = std::make_unique<VertexArray>();
@@ -116,16 +137,23 @@ void LevelRenderer::build()
     _vao->vertexBuffer(kVertexInputVertex, *_vtxBuf, sizeof(GLvec3));
 
     _vao->enableAttrib(kVertexInputNormal);
-    _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_TRUE);
+    _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_FALSE);
     _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf, sizeof(GLvec3));
+
+    _vao->enableAttrib(kVertexInputTexCoord);
+    _vao->format(kVertexInputTexCoord, 2, GL_FLOAT, GL_FALSE);
+    _vao->vertexBuffer(kVertexInputTexCoord, *_uvBuf, sizeof(GLvec2));
+
     _vao->indexBuffer(*_idxBuf);
 
-    _lightmap = _lightmapBuilder->build(GL_TEXTURE_2D);
+    _lightmap = _lightmapBuilder->build();
 
     // release temp data
     std::vector<GLvec3> temp1, temp2;
     _vertexBuffer.swap(temp1);
     _normalBuffer.swap(temp2);
+    std::vector<GLvec2> temp3;
+    _texCoordBuffer.swap(temp3);
     _lightmapBuilder.reset();
 }
 
@@ -161,6 +189,9 @@ void LevelRenderer::renderWorld()
     glm::vec3 eyeDirection = qvec2glm(vpn);
     glm::mat4 model;
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
+
+    // bind the light map
+    TextureBinding lightmapBinding(*_lightmap, GL_TEXTURE0);
 
     QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view);
     _vao->bind();
