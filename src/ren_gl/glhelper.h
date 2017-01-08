@@ -341,6 +341,10 @@ public:
         glBindTexture(_target, _handle);
         glTexSubImage2D(_target, 0, x, y, w, h, _format, _datatype, data);
     }
+    void update(const GLvoid* data)
+    {
+        update(0, 0, _width, _height, data);
+    }
 };
 
 class TextureBinding
@@ -362,22 +366,21 @@ public:
     }
 };
 
+template<typename T>
 class Image
 {
-    GLuint _bpp;
-    GLuint _w, _h;
-    std::vector<uint8_t> _data;
+    const GLuint _w, _h;
+    std::vector<T> _data;
 public:
-    Image(GLuint bytesPerPixel, GLuint width, GLuint height, const void* data) :
-        _bpp(bytesPerPixel), _w(width), _h(height),
-        _data(_bpp * _w * _h)
+    Image(GLuint width, GLuint height, const T* data) :
+        _w(width), _h(height), _data(_w * _h)
     {
         if (data)
-            memcpy(_data.data(), data, _data.size());
+            memcpy(_data.data(), data, _data.size() * sizeof(T));
     }
     GLuint bpp() const
     {
-        return _bpp;
+        return sizeof(T);
     }
     GLuint width() const
     {
@@ -387,51 +390,136 @@ public:
     {
         return _h;
     }
-    const void* row(GLuint r) const
+    const T* row(GLuint r) const
     {
-        GLuint rowbytes = _w * _bpp;
-        return rowbytes * r + _data.data();
+        return _data.data() + r * _w;
     }
     void* row(GLuint r)
     {
-        GLuint rowbytes = _w * _bpp;
-        return rowbytes * r + _data.data();
+        return _data.data() + r * _w;
     }
 };
 
-class TextureAtlas : public Texture
+template <Texture::Type TYPE>
+struct TextureTypeTraits {};
+template <>
+struct TextureTypeTraits<Texture::RGBA>
 {
+    using PixelType = uint32_t;
+};
+template <>
+struct TextureTypeTraits<Texture::GRAY>
+{
+    using PixelType = uint8_t;
+};
+
+template<Texture::Type TYPE>
+class TextureAtlasBuilder
+{
+    using PixelType = typename TextureTypeTraits<TYPE>::PixelType;
+    Image<PixelType> _textureImage;
+    const GLuint _padding;
+    
+    const static int kMinRowHeight = 16;
+    struct Row
+    {
+        int _x, _y, _w, _h; // free space
+    };
+    std::vector<Row> _rows;
+    int _freeTop = 0;
 public:
     class SubTexture
     {
         const int _x, _y, _w, _h;
-        const TextureAtlas& _parentTexture;
+        const int _parentW, _parentH;
     public:
-        SubTexture(const TextureAtlas& parentTexture, int x, int y, int w, int h) :
-            _parentTexture(parentTexture), _x(x), _y(y), _w(w), _h(h)
+        SubTexture(int x, int y, int w, int h, int parentW, int parentH) :
+            _x(x), _y(y), _w(w), _h(h), _parentW(parentW), _parentH(parentH)
         {
         }
-        const TextureAtlas& parentTexture() const
-        {
-            return _parentTexture;
-        }
+        SubTexture(const SubTexture&) = default;
         void translateCoordinate(float& u, float& v) const
         {
-            float s = (u * _w + _x) / _parentTexture.width();
-            float t = (v * _h + _y) / _parentTexture.height();
+            float s = (u * _w + _x) / _parentW;
+            float t = (v * _h + _y) / _parentH;
             u = s;
             v = t;
         }
     };
 
-    TextureAtlas(GLenum target, GLuint width, GLuint height, Type type) :
-        Texture(target, width, height, type, nullptr)
+    TextureAtlasBuilder(GLuint width, GLuint height, GLuint padding) :
+        _textureImage(width, height, nullptr), _padding(padding)
     {
     }
-    TextureAtlas(TextureAtlas&& other) : Texture(std::move(other))
-    {}
-    SubTexture addImage()
+
+    SubTexture addImage(const Image<PixelType>& image)
     {
-        return {*this, 0, 0, 1, 1};
+        const int w = image.width();
+        const int h = image.width();
+        const int paddedW = w + _padding * 2;
+        const int paddedH = h + _padding * 2;
+
+        //search for an allocated row that can fit
+        auto i = _rows.begin();
+        for (; i != _rows.end(); ++i)
+        {
+            if (i->_w >= paddedW || i->_h >= paddedH)
+                break;
+        }
+
+        int paddedX, paddedY;
+
+        if (i == _rows.end()) // no existing allocation fits this
+        {
+            int top = _freeTop;
+            int allocH = std::max(kMinRowHeight, paddedH);
+            _freeTop += allocH;
+            assert(_freeTop < _textureImage.height());
+            // allocate a new row
+            _rows.emplace_back(paddedW, top, _textureImage.width() - paddedW, allocH);
+            paddedX = 0;
+            paddedY = top;
+        }
+        else // found a row that can fit the image
+        {
+            paddedX = i->_x;
+            paddedY = i->_y;
+            i->_x += paddedW;
+            i->_w -= paddedW;            
+        }
+
+        int x = paddedX + _padding;
+        int y = paddedY + _padding;
+
+        // now fill the subimage
+        auto copyLinePadded = [] (auto* dst, const auto* src, int w, GLuint padding)
+            {
+                auto leftPadding = src[0];
+                for (int i = 0; i < padding; ++i)
+                    *dst++ = leftPadding;
+                for (int i = 0; i < w; ++i)
+                    *dst++ = *src++;
+                auto rightPadding = src[-1];
+                for (int i = 0; i < padding; ++i)
+                    *dst++ = rightPadding;
+            };
+
+        // top padding
+        for (int i = 0; i < _padding; ++i)
+            copyLinePadded(_textureImage.row(paddedY + i) + paddedX, image.row(0), w, _padding);
+        // image
+        for (int i = 0; i < h; ++i)
+            copyLinePadded(_textureImage.row(y+i) + paddedX, image.row(i), w, _padding);
+        // bottom padding
+        for (int i = 0; i < _padding; ++i)
+            copyLinePadded(_textureImage.row(y + h + i) + paddedX, image.row(h-1), w, _padding);
+
+        return {x, y, w, h, _textureImage.width(), _textureImage.height()};
+    }
+
+    std::unique_ptr<Texture> build(GLenum target)
+    {
+        auto texture = std::make_unique<Texture>(target, _textureImage.width(), _textureImage.height(), TYPE, _textureImage.data());
+        return std::move(texture);
     }
 };
