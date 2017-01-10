@@ -31,7 +31,7 @@ private:
     struct RendererInfo
     {
         size_t vertexIndex;
-        std::vector<TextureTile> lightmaps;
+        TextureTile lightmap;
     };
     std::vector<RendererInfo> _rendererInfoArray;
 
@@ -49,7 +49,7 @@ private:
     std::vector<GLvec3> _vertexBuffer;
     std::vector<GLvec3> _normalBuffer;
     std::vector<GLvec2> _texCoordBuffer;
-    std::unique_ptr<TextureAtlasBuilder<Texture::GRAY>> _lightmapBuilder;
+    std::unique_ptr<TextureAtlasBuilder<Texture::RGBA>> _lightmapBuilder;
 
     void markLeaves (mleaf_s* viewleaf);
     void storeEfrags (efrag_s **ppefrag);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "glcommon.h"
+#include <algorithm>
 
 #ifdef GL45
     #include <glbinding/gl45core/gl.h>
@@ -385,6 +386,10 @@ public:
         if (data)
             memcpy(_data.data(), data, _data.size() * sizeof(T));
     }
+    void clear(T color)
+    {
+        std::fill(_data.begin(), _data.end(), color);
+    }
     GLuint bpp() const
     {
         return sizeof(T);
@@ -408,17 +413,10 @@ public:
 };
 
 // a tile inside a texture atlas
-class TextureTile
+struct TextureTile
 {
-    const GLint _x, _y;
-    const GLuint _w, _h, _parentW, _parentH;
-public:
-    TextureTile(GLint x, GLint y, GLuint w, GLuint h, GLuint parentW, GLuint parentH) :
-        _x(x), _y(y), _w(w), _h(h), _parentW(parentW), _parentH(parentH)
-    {
-    }
-
-    TextureTile(const TextureTile&) = default;
+    GLint _x = 0, _y = 0;
+    GLuint _w = 0, _h = 0, _parentW = 0, _parentH = 0;
 
     bool empty() const { return _w == 0 || _h == 0; }
 

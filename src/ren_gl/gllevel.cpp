@@ -13,7 +13,7 @@ const static GLuint kLightmapAtlasPadding = 1;
 
 LevelRenderer::LevelRenderer()
 {
-    _lightmapBuilder = std::make_unique<TextureAtlasBuilder<Texture::GRAY>>(kLightmapAtlasSize, kLightmapAtlasPadding);
+    _lightmapBuilder = std::make_unique<TextureAtlasBuilder<Texture::RGBA>>(kLightmapAtlasSize, kLightmapAtlasPadding);
 }
 
 LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
@@ -30,20 +30,25 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
         RendererInfo& surfaceRendererInfo = _rendererInfoArray.back();
 
         // read lightmaps
-        if (surface.samples)
+        static_assert(MAXLIGHTMAPS == 4); // we use rgba texture for the 4 lightmaps
+        const uint8_t* lightmapData = surface.samples;
+        if (lightmapData)
         {
             GLuint lightmapW = (surface.extents[0] >> 4) + 1;
             GLuint lightmapH = (surface.extents[1] >> 4) + 1;
             GLuint lightmapSize = lightmapW * lightmapH;
-            const uint8_t* lightmapData = surface.samples;
-            for (int lightmapIdx = 0; 
-                 lightmapIdx < MAXLIGHTMAPS && surface.styles[lightmapIdx] != 255;
-                 ++lightmapIdx)
+
+            Image<uint32_t> lightmapImage(lightmapW, lightmapH, nullptr);
+            uint32_t* combinedLightmapData = lightmapImage.row(0);
+
+            for (int lightmapIdx = 0; lightmapIdx < MAXLIGHTMAPS && surface.styles[lightmapIdx] != 255; ++lightmapIdx)
             {
-                Image<uint8_t> lightmapImage(lightmapW, lightmapH, lightmapData);
+                for (int i = 0; i < lightmapSize; ++i)
+                    combinedLightmapData[i] |= lightmapData[i] << (24 - lightmapIdx * 8);
                 lightmapData += lightmapSize;
-                surfaceRendererInfo.lightmaps.push_back(_lightmapBuilder->addImage(lightmapImage));
             }
+
+            surfaceRendererInfo.lightmap = _lightmapBuilder->addImage(lightmapImage);
         }
 
         // store vertex index
@@ -113,9 +118,9 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
                     s = s / 16 + 1;
                     t = t / 16 + 1;
 
-                    if (!surfaceRendererInfo.lightmaps.empty())
+                    if (!surfaceRendererInfo.lightmap.empty())
                     {
-                        surfaceRendererInfo.lightmaps[0].translateCoordinate(s, t);
+                        surfaceRendererInfo.lightmap.translateCoordinate(s, t);
                     }
                     _texCoordBuffer.emplace_back(GLvec2{s, t});
                 }
