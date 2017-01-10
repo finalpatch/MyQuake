@@ -40,7 +40,7 @@ void main(void)
     uvec4 ustyles = uvec4(styles * 255);
     uvec4 style_h  = (ustyles / 4u) % 16u;
     uvec4 style_l  = ustyles % 4u;
-    vec4 mask = vec4(sign(ustyles - 255u));
+    vec4 mask = sign(1.0 - styles);
     vs_out.lightScales = mask * vec4(
         uniforms.lightStyles[style_h.r][style_l.r],
         uniforms.lightStyles[style_h.g][style_l.g],
