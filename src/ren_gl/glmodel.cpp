@@ -108,8 +108,10 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
         ;
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
+    const static GLfloat nullLightStyles[MAX_LIGHTSTYLES] = {};
+
     QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view,
-        {0, 0, 0, 0}, {0, 0, 0, 0});
+        nullLightStyles, {0, 0, 0, 0});
     _vao->bind();
     auto offset = _frames[frameId]->getVertexOffset(time);
     glDrawElementsBaseVertex(GL_TRIANGLES, _idxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);

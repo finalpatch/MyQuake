@@ -9,7 +9,8 @@
 enum {
     kVertexInputVertex   = 0,
     kVertexInputNormal   = 1,
-    kVertexInputTexCoord = 2
+    kVertexInputTexCoord = 2,
+    kVertexInputStyle    = 3
 };
 
 class QuakeRenderProgram
@@ -20,7 +21,7 @@ class QuakeRenderProgram
         GLfloat view[4*4];
         GLfloat projection[4*4];
 
-        GLfloat lightmapMask[4];
+        GLfloat lightStyles[64];
         GLfloat ambientLight[4];
     };
 public:
@@ -31,7 +32,7 @@ public:
     }
 
     void setup(float w, float h, const glm::mat4& model, const glm::mat4& view,
-        const glm::vec4& lightmapMask, const glm::vec4& ambientLight)
+        const GLfloat* lightStyles, const glm::vec4& ambientLight)
     {
         auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 5000.0f);
         UniformBlock uniformBlock;
@@ -40,7 +41,7 @@ public:
         memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
 
-        memcpy(uniformBlock.lightmapMask, glm::value_ptr(lightmapMask), sizeof(uniformBlock.lightmapMask));
+        memcpy(uniformBlock.lightStyles, lightStyles, sizeof(uniformBlock.lightStyles));
         memcpy(uniformBlock.ambientLight, glm::value_ptr(ambientLight), sizeof(uniformBlock.ambientLight));
 
         _ufmBuf->update(&uniformBlock);

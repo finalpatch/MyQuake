@@ -11,9 +11,10 @@ extern "C"
 const static GLuint kLightmapAtlasSize = 1024;
 const static GLuint kLightmapAtlasPadding = 1;
 
-LevelRenderer::LevelRenderer()
+LevelRenderer::LevelRenderer() :
+    _lightStyles(MAX_LIGHTSTYLES),
+    _lightmapBuilder(std::make_unique<TextureAtlasBuilder<Texture::RGBA>>(kLightmapAtlasSize, kLightmapAtlasPadding))
 {
-    _lightmapBuilder = std::make_unique<TextureAtlasBuilder<Texture::RGBA>>(kLightmapAtlasSize, kLightmapAtlasPadding);
 }
 
 LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
@@ -123,6 +124,9 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
                         surfaceRendererInfo.lightmap.translateCoordinate(s, t);
                     }
                     _texCoordBuffer.emplace_back(GLvec2{s, t});
+                    _styleBuffer.emplace_back(std::array<GLubyte, 4>{
+                        surface.styles[0], surface.styles[1],
+                        surface.styles[2], surface.styles[3]});
                 }
 
                 previousVertexIndex = currentVertexIndex;
@@ -139,6 +143,7 @@ void LevelRenderer::build()
     _vtxBuf = std::make_unique<GLBuffer<GLvec3>>(_vertexBuffer.data(), _vertexBuffer.size());
     _nrmBuf = std::make_unique<GLBuffer<GLvec3>>(_normalBuffer.data(), _normalBuffer.size());
     _uvBuf  = std::make_unique<GLBuffer<GLvec2>>(_texCoordBuffer.data(), _texCoordBuffer.size());
+    _styBuf = std::make_unique<GLBuffer<std::array<GLubyte, 4>>>(_styleBuffer.data(), _styleBuffer.size());
     _idxBuf = std::make_unique<GLBuffer<GLuint>>(nullptr, _vertexBuffer.size(), kGlBufferDynamic);
 
     _vao = std::make_unique<VertexArray>();
@@ -154,6 +159,10 @@ void LevelRenderer::build()
     _vao->enableAttrib(kVertexInputTexCoord);
     _vao->format(kVertexInputTexCoord, 2, GL_FLOAT, GL_FALSE);
     _vao->vertexBuffer(kVertexInputTexCoord, *_uvBuf, sizeof(GLvec2));
+
+    _vao->enableAttrib(kVertexInputStyle);
+    _vao->format(kVertexInputStyle, 4, GL_UNSIGNED_BYTE, GL_TRUE);
+    _vao->vertexBuffer(kVertexInputStyle, *_styBuf, sizeof(GLubyte)*4);
 
     _vao->indexBuffer(*_idxBuf);
 
@@ -183,13 +192,14 @@ void LevelRenderer::renderSubmodel(const Submodel& submodel, const float* origin
     TextureBinding lightmapBinding(*_lightmap, GL_TEXTURE0);
 
     QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view,
-        {1, 1, 1, 1}, {0, 0, 0, 0});
+        _lightStyles.data(), {0, 0, 0, 0});
     _vao->bind();
     glDrawArrays(GL_TRIANGLES, submodel.first, submodel.count);
 }
 
 void LevelRenderer::renderWorld()
 {
+    animateLight();
     _framecount++;
 	auto viewleaf = Mod_PointInLeaf(r_origin, cl.worldmodel);
     markLeaves(viewleaf);
@@ -208,9 +218,27 @@ void LevelRenderer::renderWorld()
     TextureBinding lightmapBinding(*_lightmap, GL_TEXTURE0);
 
     QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view,
-        {1, 1, 1, 1}, {0, 0, 0, 0});
+        _lightStyles.data(), {0, 0, 0, 0});
     _vao->bind();
     glDrawElements(GL_TRIANGLES, indexBuffer.size(), GL_UNSIGNED_INT, nullptr);
+}
+
+void LevelRenderer::animateLight()
+{
+    int i = (int)(cl.time*10);
+	for (int j=0 ; j<MAX_LIGHTSTYLES ; j++)
+	{
+		if (!cl_lightstyle[j].length)
+		{
+			_lightStyles[j] = 1.0f;
+			continue;
+		}
+		int k = i % cl_lightstyle[j].length;
+		k = cl_lightstyle[j].map[k] - 'a';
+		_lightStyles[j] = (float)k / ('z' - 'a');
+        Con_Printf("%d: %.4f ", j,  _lightStyles[j]);
+	}
+    Con_Printf("\n");
 }
 
 void LevelRenderer::markLeaves (mleaf_s* viewleaf)
