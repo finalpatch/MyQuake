@@ -21,7 +21,7 @@ out VS_OUT
 {
     vec4 color;
     vec2 texcoord;
-    flat vec4 styles;
+    vec4 lightScales;
 } vs_out;
 
 void main(void)
@@ -36,5 +36,14 @@ void main(void)
     gl_Position = t * position;
     vs_out.color = vec4(l, l, l, 1.0);
     vs_out.texcoord = texCoord;
-    vs_out.styles = styles;
+
+    uvec4 ustyles = uvec4(styles * 255);
+    uvec4 style_h  = (ustyles / 4u) % 16u;
+    uvec4 style_l  = ustyles % 4u;
+    vec4 mask = vec4(sign(ustyles - 255u));
+    vs_out.lightScales = mask * vec4(
+        uniforms.lightStyles[style_h.r][style_l.r],
+        uniforms.lightStyles[style_h.g][style_l.g],
+        uniforms.lightStyles[style_h.b][style_l.b],
+        uniforms.lightStyles[style_h.a][style_l.a]);
 }
