@@ -236,9 +236,7 @@ void LevelRenderer::animateLight()
 		int k = i % cl_lightstyle[j].length;
 		k = cl_lightstyle[j].map[k] - 'a';
 		_lightStyles[j] = (float)k / ('z' - 'a');
-        Con_Printf("%d: %.4f ", j,  _lightStyles[j]);
 	}
-    Con_Printf("\n");
 }
 
 void LevelRenderer::markLeaves (mleaf_s* viewleaf)
