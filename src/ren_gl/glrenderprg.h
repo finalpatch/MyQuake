@@ -20,7 +20,8 @@ class QuakeRenderProgram
         GLfloat view[4*4];
         GLfloat projection[4*4];
 
-        GLfloat constLight = 0.0f;
+        GLfloat lightmapMask[4];
+        GLfloat ambientLight[4];
     };
 public:
     static QuakeRenderProgram& getInstance()
@@ -29,19 +30,25 @@ public:
         return singleton;
     }
 
-    void setup(float w, float h, const glm::mat4& model, const glm::mat4& view)
+    void setup(float w, float h, const glm::mat4& model, const glm::mat4& view,
+        const glm::vec4& lightmapMask, const glm::vec4& ambientLight)
     {
         auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 5000.0f);
         UniformBlock uniformBlock;
+
         memcpy(uniformBlock.model, glm::value_ptr(model), sizeof(uniformBlock.model));
         memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
+
+        memcpy(uniformBlock.lightmapMask, glm::value_ptr(lightmapMask), sizeof(uniformBlock.lightmapMask));
+        memcpy(uniformBlock.ambientLight, glm::value_ptr(ambientLight), sizeof(uniformBlock.ambientLight));
+
         _ufmBuf->update(&uniformBlock);
     }
     void use()
     {
         _prog->use();
-        _prog->setUniformBlock("TransformBlock", * _ufmBuf);
+        _prog->setUniformBlock("UniformBlock", * _ufmBuf);
     }
 
 private:

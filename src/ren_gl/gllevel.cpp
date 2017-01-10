@@ -182,7 +182,8 @@ void LevelRenderer::renderSubmodel(const Submodel& submodel, const float* origin
 
     TextureBinding lightmapBinding(*_lightmap, GL_TEXTURE0);
 
-    QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view);
+    QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view,
+        {1, 1, 1, 1}, {0, 0, 0, 0});
     _vao->bind();
     glDrawArrays(GL_TRIANGLES, submodel.first, submodel.count);
 }
@@ -206,7 +207,8 @@ void LevelRenderer::renderWorld()
     // bind the light map
     TextureBinding lightmapBinding(*_lightmap, GL_TEXTURE0);
 
-    QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view);
+    QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view,
+        {1, 1, 1, 1}, {0, 0, 0, 0});
     _vao->bind();
     glDrawElements(GL_TRIANGLES, indexBuffer.size(), GL_UNSIGNED_INT, nullptr);
 }
