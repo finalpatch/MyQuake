@@ -168,12 +168,10 @@ void LevelRenderer::build()
 
     _lightmap = _lightmapBuilder->build();
 
-    // release temp data
-    std::vector<GLvec3> temp1, temp2;
-    _vertexBuffer.swap(temp1);
-    _normalBuffer.swap(temp2);
-    std::vector<GLvec2> temp3;
-    _texCoordBuffer.swap(temp3);
+    { std::vector<GLvec3> temp; _vertexBuffer.swap(temp); }
+    { std::vector<GLvec3> temp; _normalBuffer.swap(temp); }
+    { std::vector<GLvec2> temp; _texCoordBuffer.swap(temp); }
+    { std::vector<std::array<GLubyte, 4>> temp; _styleBuffer.swap(temp); }
     _lightmapBuilder.reset();
 }
 
