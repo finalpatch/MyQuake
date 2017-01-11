@@ -74,6 +74,8 @@ typedef struct texture_s
 	struct texture_s *anim_next;		// in the animation sequence
 	struct texture_s *alternate_anims;	// bmodels in frmae 1 use these
 	unsigned	offsets[MIPLEVELS];		// four mip maps stored
+	//
+	uintptr_t   rendererData;
 } texture_t;
 
 
@@ -125,7 +127,7 @@ typedef struct msurface_s
 	byte		*samples;		// [numstyles*surfsize]
 
 // renderer specific data
-	uintptr_t   rendererInfo;
+	uintptr_t   rendererData;
 } msurface_t;
 
 typedef struct mnode_s

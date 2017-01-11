@@ -354,7 +354,7 @@ public:
     {
         return _height;
     }
-    void update(GLint x, GLint y, GLuint w, GLuint h, const GLvoid* data)
+    void update(GLint x, GLint y, GLuint w, GLuint h, const GLvoid* data, GLuint level = 0)
     {
         glBindTexture(_target, _handle);
         glTexSubImage2D(_target, 0, x, y, w, h, _format, _datatype, data);

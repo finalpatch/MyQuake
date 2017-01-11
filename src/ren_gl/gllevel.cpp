@@ -55,7 +55,7 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
         }
 
         // store vertex index for this polygon
-        surface.rendererInfo = _vertexBuffer.size();
+        surface.rendererData = _vertexBuffer.size();
 
         int firstVertexIndex;
         int previousVertexIndex;
@@ -349,7 +349,7 @@ void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
             if(surf[i].visframe != _visframecount)
                 continue;
 
-            GLuint baseidx = surf[i].rendererInfo;
+            GLuint baseidx = surf[i].rendererData;
             for (int j = 0; j < surf[i].numedges - 2; ++j)
             {
                 indexBuffer.insert(indexBuffer.end(), 
@@ -488,7 +488,19 @@ void LevelRenderer::loadTextures(texture_s** textures, int numtextures)
     _diffusemaps.clear();
     for (int i = 0; i < numtextures; ++i)
     {
-        const texture_s* texture = textures[i];
+        texture_s* texture = textures[i];
+        if (!texture)
+            continue;
+        Con_Printf("loading texture: %s\n", texture->name);
+        texture->rendererData = _diffusemaps.size();
+        unsigned w = texture->width;
+        unsigned h = texture->height;
+        _diffusemaps.emplace_back(w, h);
+        const uint8_t* pixels = reinterpret_cast<const uint8_t*>(texture);
+        for (int mip = 0; mip < MIPLEVELS; ++mip)
+        {
+            _diffusemaps.back().texture.update(0, 0, w, h, pixels + texture->offsets[mip], mip);
+            w >>= 1; h >>= 1;
+        }
    }
 }
-

@@ -47,6 +47,8 @@ private:
     {
         Texture texture;
         std::vector<GLuint> vertexes;
+        
+        TextureChain(GLuint width, GLuint height) : texture(GL_TEXTURE_2D, width, height, Texture::GRAY) {}
     };
     std::vector<TextureChain> _diffusemaps;
     
