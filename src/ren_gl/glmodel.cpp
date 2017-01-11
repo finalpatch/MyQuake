@@ -73,9 +73,9 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
         indexes.push_back(triangles[i].vertindex[2]);
     }
 
-    _vtxBuf = std::make_unique<GLBuffer<GLvec3>>(vertices.data(), vertices.size());
-    _nrmBuf = std::make_unique<GLBuffer<GLvec3>>(normals.data(), normals.size());
-    _idxBuf = std::make_unique<GLBuffer<GLushort>>(indexes.data(), indexes.size());
+    _vtxBuf = std::make_unique<GLBuffer<GLvec3>>(vertices);
+    _nrmBuf = std::make_unique<GLBuffer<GLvec3>>(normals);
+    _idxBuf = std::make_unique<GLBuffer<GLushort>>(indexes);
 
     _vao = std::make_unique<VertexArray>();
 

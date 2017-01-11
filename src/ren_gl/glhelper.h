@@ -72,6 +72,9 @@ public:
         glCreateBuffers(1, &_handle);
         glNamedBufferStorage(_handle, size * sizeof(T), data, flags);
     }
+    explicit GLBuffer(const std::vector<T>& data, BufferStorageMask flags = GL_NONE_BIT)
+        : GLBuffer(data.data(), data.size(), flags)
+    {}
 #else
     GLBuffer(const T* data, size_t size, GLenum flags = GL_STATIC_DRAW)
         : _size(size)
@@ -80,6 +83,9 @@ public:
         bind(GL_COPY_WRITE_BUFFER);
         glBufferData(GL_COPY_WRITE_BUFFER, size * sizeof(T), data, flags);
     }
+    explicit GLBuffer(const std::vector<T>& data, GLenum flags = GL_STATIC_DRAW)
+        : GLBuffer(data.data(), data.size(), flags)
+    {}
 #endif
     GLBuffer(GLBuffer&& other) : GLObject(std::move(other))
     {
@@ -102,6 +108,10 @@ public:
         bind(GL_COPY_WRITE_BUFFER);
         glBufferSubData(GL_COPY_WRITE_BUFFER, offset * sizeof(T), size * sizeof(T), data);
 #endif
+    }
+    void update(const std::vector<T>& data, size_t offset = 0)
+    {
+        update(data.data(), data.size(), offset);
     }
     void update(const T* data)
     {

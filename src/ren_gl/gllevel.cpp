@@ -140,10 +140,10 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
 
 void LevelRenderer::build()
 {
-    _vtxBuf = std::make_unique<GLBuffer<GLvec3>>(_vertexBuffer.data(), _vertexBuffer.size());
-    _nrmBuf = std::make_unique<GLBuffer<GLvec3>>(_normalBuffer.data(), _normalBuffer.size());
-    _uvBuf  = std::make_unique<GLBuffer<GLvec2>>(_texCoordBuffer.data(), _texCoordBuffer.size());
-    _styBuf = std::make_unique<GLBuffer<std::array<GLubyte, 4>>>(_styleBuffer.data(), _styleBuffer.size());
+    _vtxBuf = std::make_unique<GLBuffer<GLvec3>>(_vertexBuffer);
+    _nrmBuf = std::make_unique<GLBuffer<GLvec3>>(_normalBuffer);
+    _uvBuf  = std::make_unique<GLBuffer<GLvec2>>(_texCoordBuffer);
+    _styBuf = std::make_unique<GLBuffer<std::array<GLubyte, 4>>>(_styleBuffer);
     _idxBuf = std::make_unique<GLBuffer<GLuint>>(nullptr, _vertexBuffer.size(), kGlBufferDynamic);
 
     _vao = std::make_unique<VertexArray>();
@@ -206,7 +206,7 @@ void LevelRenderer::renderWorld()
 
     std::vector<GLuint> indexBuffer;
     walkBspTree(cl.worldmodel->nodes, indexBuffer);
-    _idxBuf->update(indexBuffer.data(), indexBuffer.size());
+    _idxBuf->update(indexBuffer);
 
     glm::vec3 origin = qvec2glm(cl_visedicts[0]->origin);
     glm::vec3 eyePos = qvec2glm(r_origin);
