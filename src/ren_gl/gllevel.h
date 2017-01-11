@@ -33,7 +33,6 @@ private:
     struct RendererInfo
     {
         size_t vertexIndex;
-        TextureTile lightmap;
     };
     std::vector<RendererInfo> _rendererInfoArray;
 

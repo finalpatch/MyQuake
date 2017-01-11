@@ -29,6 +29,7 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
         surface.rendererInfo = _rendererInfoArray.size();
         _rendererInfoArray.emplace_back();
         RendererInfo& surfaceRendererInfo = _rendererInfoArray.back();
+        TextureTile lightmapTile;
 
         // read lightmaps
         static_assert(MAXLIGHTMAPS == 4); // we use rgba texture for the 4 lightmaps
@@ -49,7 +50,7 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
                 lightmapData += lightmapSize;
             }
 
-            surfaceRendererInfo.lightmap = _lightmapBuilder->addImage(lightmapImage);
+            lightmapTile = _lightmapBuilder->addImage(lightmapImage);
         }
 
         // store vertex index
@@ -119,9 +120,9 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
                     s = s / 16 + 1;
                     t = t / 16 + 1;
 
-                    if (!surfaceRendererInfo.lightmap.empty())
+                    if (!lightmapTile.empty())
                     {
-                        surfaceRendererInfo.lightmap.translateCoordinate(s, t);
+                        lightmapTile.translateCoordinate(s, t);
                     }
                     _texCoordBuffer.emplace_back(GLvec2{s, t});
                     _styleBuffer.emplace_back(std::array<GLubyte, 4>{
