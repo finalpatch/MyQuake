@@ -63,9 +63,6 @@ all big things are allocated on the hunk.
 
 memzone_t	*mainzone;
 
-void Z_ClearZone (memzone_t *zone, int size);
-
-
 /*
 ========================
 Z_ClearZone
@@ -88,6 +85,29 @@ void Z_ClearZone (memzone_t *zone, int size)
 	block->tag = 0;			// free block
 	block->id = ZONEID;
 	block->size = size - sizeof(memzone_t);
+}
+
+
+/*
+========================
+Z_CheckHeap
+========================
+*/
+void Z_CheckHeap (void)
+{
+	memblock_t	*block;
+	
+	for (block = mainzone->blocklist.next ; ; block = block->next)
+	{
+		if (block->next == &mainzone->blocklist)
+			break;			// all blocks have been hit	
+		if ( (byte *)block + block->size != (byte *)block->next)
+			Sys_Error ("Z_CheckHeap: block size does not touch the next block\n");
+		if ( block->next->prev != block)
+			Sys_Error ("Z_CheckHeap: next block doesn't have proper back link\n");
+		if (!block->tag && !block->next->tag)
+			Sys_Error ("Z_CheckHeap: two consecutive free blocks\n");
+	}
 }
 
 
@@ -131,25 +151,6 @@ void Z_Free (void *ptr)
 		if (other == mainzone->rover)
 			mainzone->rover = block;
 	}
-}
-
-
-/*
-========================
-Z_Malloc
-========================
-*/
-void *Z_Malloc (int size)
-{
-	void	*buf;
-	
-Z_CheckHeap ();	// DEBUG
-	buf = Z_TagMalloc (size, 1);
-	if (!buf)
-		Sys_Error ("Z_Malloc: failed on allocation of %i bytes",size);
-	Q_memset (buf, 0, size);
-
-	return buf;
 }
 
 void *Z_TagMalloc (int size, int tag)
@@ -210,6 +211,24 @@ void *Z_TagMalloc (int size, int tag)
 	return (void *) ((byte *)base + sizeof(memblock_t));
 }
 
+/*
+========================
+Z_Malloc
+========================
+*/
+void *Z_Malloc (int size)
+{
+	void	*buf;
+	
+Z_CheckHeap ();	// DEBUG
+	buf = Z_TagMalloc (size, 1);
+	if (!buf)
+		Sys_Error ("Z_Malloc: failed on allocation of %i bytes",size);
+	Q_memset (buf, 0, size);
+
+	return buf;
+}
+
 
 /*
 ========================
@@ -235,29 +254,6 @@ void Z_Print (memzone_t *zone)
 			Con_Printf ("ERROR: next block doesn't have proper back link\n");
 		if (!block->tag && !block->next->tag)
 			Con_Printf ("ERROR: two consecutive free blocks\n");
-	}
-}
-
-
-/*
-========================
-Z_CheckHeap
-========================
-*/
-void Z_CheckHeap (void)
-{
-	memblock_t	*block;
-	
-	for (block = mainzone->blocklist.next ; ; block = block->next)
-	{
-		if (block->next == &mainzone->blocklist)
-			break;			// all blocks have been hit	
-		if ( (byte *)block + block->size != (byte *)block->next)
-			Sys_Error ("Z_CheckHeap: block size does not touch the next block\n");
-		if ( block->next->prev != block)
-			Sys_Error ("Z_CheckHeap: next block doesn't have proper back link\n");
-		if (!block->tag && !block->next->tag)
-			Sys_Error ("Z_CheckHeap: two consecutive free blocks\n");
 	}
 }
 
@@ -449,17 +445,6 @@ void Hunk_FreeToLowMark (int mark)
 	hunk_low_used = mark;
 }
 
-int	Hunk_HighMark (void)
-{
-	if (hunk_tempactive)
-	{
-		hunk_tempactive = false;
-		Hunk_FreeToHighMark (hunk_tempmark);
-	}
-
-	return hunk_high_used;
-}
-
 void Hunk_FreeToHighMark (int mark)
 {
 	if (hunk_tempactive)
@@ -473,6 +458,16 @@ void Hunk_FreeToHighMark (int mark)
 	hunk_high_used = mark;
 }
 
+int	Hunk_HighMark (void)
+{
+	if (hunk_tempactive)
+	{
+		hunk_tempactive = false;
+		Hunk_FreeToHighMark (hunk_tempmark);
+	}
+
+	return hunk_high_used;
+}
 
 /*
 ===================
