@@ -6,6 +6,7 @@ struct model_s;
 struct mleaf_s;
 struct mnode_s;
 struct efrag_s;
+struct texture_s;
 
 class LevelRenderer
 {
@@ -30,12 +31,6 @@ private:
 
     std::vector<GLfloat> _lightStyles;
 
-    struct RendererInfo
-    {
-        size_t vertexIndex;
-    };
-    std::vector<RendererInfo> _rendererInfoArray;
-
     // vertex data
     std::unique_ptr<VertexArray> _vao;
     std::unique_ptr<GLBuffer<GLvec3>> _vtxBuf;
@@ -46,6 +41,12 @@ private:
 
     // textures
     std::unique_ptr<Texture> _lightmap;
+    struct TextureChain
+    {
+        Texture texture;
+        std::vector<GLuint> vertexes;
+    };
+    std::vector<TextureChain> _diffusemaps;
     
     // builders
     std::vector<GLvec3> _vertexBuffer;
@@ -58,4 +59,5 @@ private:
     void markLeaves (mleaf_s* viewleaf);
     void storeEfrags (efrag_s **ppefrag);
     void walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer);
+    void loadTextures(texture_s** textures, int numtextures);
 };

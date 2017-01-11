@@ -19,6 +19,11 @@ LevelRenderer::LevelRenderer() :
 
 LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
 {
+    if (brushModel == cl.worldmodel) 
+    {
+        loadTextures(brushModel->textures, brushModel->numtextures);
+    }
+
     Submodel submodel;
     submodel.first =  _vertexBuffer.size();
 
@@ -26,12 +31,8 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
     {
         auto& surface = brushModel->surfaces[brushModel->firstmodelsurface + i];
 
-        surface.rendererInfo = _rendererInfoArray.size();
-        _rendererInfoArray.emplace_back();
-        RendererInfo& surfaceRendererInfo = _rendererInfoArray.back();
-        TextureTile lightmapTile;
-
         // read lightmaps
+        TextureTile lightmapTile;
         static_assert(MAXLIGHTMAPS == 4); // we use rgba texture for the 4 lightmaps
         const uint8_t* lightmapData = surface.samples;
         if (lightmapData)
@@ -53,8 +54,8 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
             lightmapTile = _lightmapBuilder->addImage(lightmapImage);
         }
 
-        // store vertex index
-        surfaceRendererInfo.vertexIndex = _vertexBuffer.size();
+        // store vertex index for this polygon
+        surface.rendererInfo = _vertexBuffer.size();
 
         int firstVertexIndex;
         int previousVertexIndex;
@@ -229,12 +230,12 @@ void LevelRenderer::animateLight()
 	{
 		if (!cl_lightstyle[j].length)
 		{
-			_lightStyles[j] = 1.0f;
+			_lightStyles[j] = 1.0f; // full bright
 			continue;
 		}
 		int k = i % cl_lightstyle[j].length;
 		k = cl_lightstyle[j].map[k] - 'a';
-		_lightStyles[j] = (float)k / ('z' - 'a');
+		_lightStyles[j] = (float)k / ('z' - 'a') * 2.0f; // up to double bright
 	}
 }
 
@@ -348,7 +349,7 @@ void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
             if(surf[i].visframe != _visframecount)
                 continue;
 
-            GLuint baseidx = _rendererInfoArray[surf[i].rendererInfo].vertexIndex;
+            GLuint baseidx = surf[i].rendererInfo;
             for (int j = 0; j < surf[i].numedges - 2; ++j)
             {
                 indexBuffer.insert(indexBuffer.end(), 
@@ -360,4 +361,13 @@ void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
         // visit far
         walkBspTree(node->children[!side], indexBuffer);
     }
+}
+
+void LevelRenderer::loadTextures(texture_s** textures, int numtextures)
+{
+    _diffusemaps.clear();
+    for (int i = 0; i < numtextures; ++i)
+    {
+        const texture_s* texture = textures[i];
+   }
 }
