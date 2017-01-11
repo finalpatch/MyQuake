@@ -11,6 +11,8 @@ extern "C"
 const static GLuint kLightmapAtlasSize = 1024;
 const static GLuint kLightmapAtlasPadding = 1;
 
+extern uint32_t vid_current_palette[256];
+
 LevelRenderer::LevelRenderer() :
     _lightStyles(MAX_LIGHTSTYLES),
     _lightmapBuilder(std::make_unique<TextureAtlasBuilder<Texture::RGBA>>(kLightmapAtlasSize, kLightmapAtlasPadding))
@@ -113,6 +115,11 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
                               v[i][1] * surface.texinfo->vecs[1][2] +
                               surface.texinfo->vecs[1][3] -
                               surface.texturemins[1];
+
+                    _texCoord2Buffer.emplace_back(GLvec2{
+                        s / surface.extents[0],
+                        t / surface.extents[1]
+                    });
                     
                     // convert to lightmap coordinate
                     // lightmap is 1/16 res
@@ -145,6 +152,7 @@ void LevelRenderer::build()
     _vtxBuf = std::make_unique<GLBuffer<GLvec3>>(_vertexBuffer);
     _nrmBuf = std::make_unique<GLBuffer<GLvec3>>(_normalBuffer);
     _uvBuf  = std::make_unique<GLBuffer<GLvec2>>(_texCoordBuffer);
+    _uv2Buf  = std::make_unique<GLBuffer<GLvec2>>(_texCoord2Buffer);
     _styBuf = std::make_unique<GLBuffer<std::array<GLubyte, 4>>>(_styleBuffer);
     _idxBuf = std::make_unique<GLBuffer<GLuint>>(nullptr, _vertexBuffer.size(), kGlBufferDynamic);
 
@@ -152,19 +160,23 @@ void LevelRenderer::build()
 
     _vao->enableAttrib(kVertexInputVertex);
     _vao->format(kVertexInputVertex, 3, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputVertex, *_vtxBuf, sizeof(GLvec3));
+    _vao->vertexBuffer(kVertexInputVertex, *_vtxBuf, _vtxBuf->stride());
 
     _vao->enableAttrib(kVertexInputNormal);
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf, sizeof(GLvec3));
+    _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf, _nrmBuf->stride());
 
     _vao->enableAttrib(kVertexInputTexCoord);
     _vao->format(kVertexInputTexCoord, 2, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputTexCoord, *_uvBuf, sizeof(GLvec2));
+    _vao->vertexBuffer(kVertexInputTexCoord, *_uvBuf, _uvBuf->stride());
 
     _vao->enableAttrib(kVertexInputStyle);
     _vao->format(kVertexInputStyle, 4, GL_UNSIGNED_BYTE, GL_TRUE);
-    _vao->vertexBuffer(kVertexInputStyle, *_styBuf, sizeof(GLubyte)*4);
+    _vao->vertexBuffer(kVertexInputStyle, *_styBuf, _styBuf->stride());
+
+    _vao->enableAttrib(kVertexInputTexCoord2);
+    _vao->format(kVertexInputTexCoord2, 2, GL_FLOAT, GL_FALSE);
+    _vao->vertexBuffer(kVertexInputTexCoord2, *_uv2Buf, _uv2Buf->stride());
 
     _vao->indexBuffer(*_idxBuf);
 
@@ -199,14 +211,17 @@ void LevelRenderer::renderSubmodel(const Submodel& submodel, const float* origin
 
 void LevelRenderer::renderWorld()
 {
+    for (auto& textureChain: _diffusemaps)
+    {
+        textureChain.vertexes.clear();
+    }
+
     animateLight();
     _framecount++;
 	auto viewleaf = Mod_PointInLeaf(r_origin, cl.worldmodel);
     markLeaves(viewleaf);
 
-    std::vector<GLuint> indexBuffer;
-    walkBspTree(cl.worldmodel->nodes, indexBuffer);
-    _idxBuf->update(indexBuffer);
+    walkBspTree(cl.worldmodel->nodes);
 
     glm::vec3 origin = qvec2glm(cl_visedicts[0]->origin);
     glm::vec3 eyePos = qvec2glm(r_origin);
@@ -216,11 +231,22 @@ void LevelRenderer::renderWorld()
 
     // bind the light map
     TextureBinding lightmapBinding(*_lightmap, GL_TEXTURE0);
+    QuakeRenderProgram::getInstance().tex("lightmap0", 0);
 
     QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view,
         _lightStyles.data(), {0, 0, 0, 0});
     _vao->bind();
-    glDrawElements(GL_TRIANGLES, indexBuffer.size(), GL_UNSIGNED_INT, nullptr);
+
+    for (auto& textureChain: _diffusemaps)
+    {
+        if (!textureChain.vertexes.empty())
+        {
+            TextureBinding diffusemapBinding(textureChain.texture, GL_TEXTURE1);
+            QuakeRenderProgram::getInstance().tex("diffusemap", 1);
+            _idxBuf->update(textureChain.vertexes);
+            glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
+        }
+    }
 }
 
 void LevelRenderer::animateLight()
@@ -301,7 +327,7 @@ void LevelRenderer::storeEfrags (efrag_s **ppefrag)
 	}
 }
 
-void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
+void LevelRenderer::walkBspTree(mnode_s *node)
 {
 	if (node->contents == CONTENTS_SOLID)
 		return;		// solid
@@ -340,7 +366,7 @@ void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
         int side = (dot >= 0) ? 0 : 1;
 
         // visit near
-        walkBspTree(node->children[side], indexBuffer);
+        walkBspTree(node->children[side]);
 
         // emit marked polygons
         auto surf = cl.worldmodel->surfaces + node->firstsurface;
@@ -349,17 +375,21 @@ void LevelRenderer::walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer)
             if(surf[i].visframe != _visframecount)
                 continue;
 
+            auto textureChainIndex = surf[i].texinfo->texture->rendererData;
+            auto& textureChain = _diffusemaps[textureChainIndex];
+
             GLuint baseidx = surf[i].rendererData;
             for (int j = 0; j < surf[i].numedges - 2; ++j)
             {
-                indexBuffer.insert(indexBuffer.end(), 
+                textureChain.vertexes.insert(
+                    textureChain.vertexes.end(),
                     {baseidx, baseidx+1, baseidx+2});
                 baseidx += 3;
             }
         }
 
         // visit far
-        walkBspTree(node->children[!side], indexBuffer);
+        walkBspTree(node->children[!side]);
     }
 }
 
@@ -496,10 +526,13 @@ void LevelRenderer::loadTextures(texture_s** textures, int numtextures)
         unsigned w = texture->width;
         unsigned h = texture->height;
         _diffusemaps.emplace_back(w, h);
-        const uint8_t* pixels = reinterpret_cast<const uint8_t*>(texture);
-        for (int mip = 0; mip < MIPLEVELS; ++mip)
+        std::vector<uint32_t> rgbtex(w * h);
+        for (int mip = 0; mip < 1; ++mip)
         {
-            _diffusemaps.back().texture.update(0, 0, w, h, pixels + texture->offsets[mip], mip);
+            const uint8_t* pixels = reinterpret_cast<const uint8_t*>(texture) + texture->offsets[mip];
+            for(int i = 0; i < w * h; ++i)
+                rgbtex[i] = vid_current_palette[pixels[i]];
+            _diffusemaps.back().texture.update(0, 0, w, h, rgbtex.data(), mip);
             w >>= 1; h >>= 1;
         }
    }

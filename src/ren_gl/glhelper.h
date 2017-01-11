@@ -100,6 +100,10 @@ public:
     {
         return _size;
     }
+    size_t stride() const
+    {
+        return sizeof(T);
+    }
     void update(const T* data, size_t size, size_t offset = 0)
     {
 #ifdef GL45
@@ -326,7 +330,7 @@ public:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
     Texture(Texture&& other) : GLObject(std::move(other))
     {
@@ -357,7 +361,7 @@ public:
     void update(GLint x, GLint y, GLuint w, GLuint h, const GLvoid* data, GLuint level = 0)
     {
         glBindTexture(_target, _handle);
-        glTexSubImage2D(_target, 0, x, y, w, h, _format, _datatype, data);
+        glTexSubImage2D(_target, level, x, y, w, h, _format, _datatype, data);
     }
     void update(const GLvoid* data)
     {

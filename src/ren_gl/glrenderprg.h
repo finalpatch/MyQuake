@@ -10,7 +10,8 @@ enum {
     kVertexInputVertex   = 0,
     kVertexInputNormal   = 1,
     kVertexInputTexCoord = 2,
-    kVertexInputStyle    = 3
+    kVertexInputStyle    = 3,
+    kVertexInputTexCoord2 = 4
 };
 
 class QuakeRenderProgram
@@ -46,6 +47,13 @@ public:
 
         _ufmBuf->update(&uniformBlock);
     }
+
+    void tex(const std::string& name, int unit)
+    {
+        auto loc = glGetUniformLocation(_prog->handle(), name.c_str());
+        glUniform1i(loc, unit);
+    }
+
     void use()
     {
         _prog->use();

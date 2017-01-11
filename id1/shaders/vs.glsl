@@ -16,11 +16,13 @@ layout (location = 0) in vec4 position;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 texCoord;
 layout (location = 3) in vec4 styles;
+layout (location = 4) in vec2 texCoord2;
 
 out VS_OUT
 {
     vec4 color;
     vec2 texcoord;
+    vec2 texcoord2;
     vec4 lightScales;
 } vs_out;
 
@@ -36,6 +38,7 @@ void main(void)
     gl_Position = t * position;
     vs_out.color = vec4(l, l, l, 1.0);
     vs_out.texcoord = texCoord;
+    vs_out.texcoord2 = texCoord2;
 
     uvec4 ustyles = uvec4(styles * 255);
     uvec4 style_h  = (ustyles / 4u) % 16u;

@@ -38,6 +38,7 @@ private:
     std::unique_ptr<GLBuffer<GLvec3>> _vtxBuf;
     std::unique_ptr<GLBuffer<GLvec3>> _nrmBuf;
     std::unique_ptr<GLBuffer<GLvec2>> _uvBuf;
+    std::unique_ptr<GLBuffer<GLvec2>> _uv2Buf;
     std::unique_ptr<GLBuffer<std::array<GLubyte, 4>>> _styBuf;
     std::unique_ptr<GLBuffer<GLuint>> _idxBuf;
 
@@ -48,7 +49,7 @@ private:
         Texture texture;
         std::vector<GLuint> vertexes;
         
-        TextureChain(GLuint width, GLuint height) : texture(GL_TEXTURE_2D, width, height, Texture::GRAY) {}
+        TextureChain(GLuint width, GLuint height) : texture(GL_TEXTURE_2D, width, height, Texture::RGBA) {}
     };
     std::vector<TextureChain> _diffusemaps;
     
@@ -56,13 +57,14 @@ private:
     std::vector<GLvec3> _vertexBuffer;
     std::vector<GLvec3> _normalBuffer;
     std::vector<GLvec2> _texCoordBuffer;
+    std::vector<GLvec2> _texCoord2Buffer;
     std::vector<std::array<GLubyte, 4>> _styleBuffer;
     std::unique_ptr<TextureAtlasBuilder<Texture::RGBA>> _lightmapBuilder;
 
     void animateLight();
     void markLeaves (mleaf_s* viewleaf);
     void storeEfrags (efrag_s **ppefrag);
-    void walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer);
+    void walkBspTree(mnode_s *node);
     
     int recursiveLightPoint (mnode_s* node, const float* start, const float* end);
 
