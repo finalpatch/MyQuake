@@ -49,7 +49,7 @@ public:
     ModelRenderer(const model_s* entityModel);
     virtual ~ModelRenderer();
 
-    void render(int frameId, float time, const float* origin, const float* angles);
+    void render(int frameId, float time, const float* origin, const float* angles, float ambientLight);
 
 private:
     std::unique_ptr<VertexArray>        _vao;    // buffer setup

@@ -26,6 +26,6 @@ in VS_OUT
 void main(void)
 {
     vec4 lightValues = texture(lightmap0, fs_in.texcoord);
-    float l = dot(lightValues, fs_in.lightScales);
-    color = vec4(l, l, l, 1.0);
+    vec3 l = vec3(dot(lightValues, fs_in.lightScales)) + uniforms.ambientLight.rgb;
+    color = vec4(l, 1.0);
 }

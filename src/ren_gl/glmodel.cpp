@@ -94,7 +94,7 @@ ModelRenderer::~ModelRenderer()
 {
 }
 
-void ModelRenderer::render(int frameId, float time, const float* origin, const float* angles)
+void ModelRenderer::render(int frameId, float time, const float* origin, const float* angles, float ambientLight)
 {
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);
@@ -111,7 +111,7 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
     const static GLfloat nullLightStyles[MAX_LIGHTSTYLES] = {};
 
     QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view,
-        nullLightStyles, {0, 0, 0, 0});
+        nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0});
     _vao->bind();
     auto offset = _frames[frameId]->getVertexOffset(time);
     glDrawElementsBaseVertex(GL_TRIANGLES, _idxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);

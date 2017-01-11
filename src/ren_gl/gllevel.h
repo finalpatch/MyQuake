@@ -24,6 +24,8 @@ public:
 
     void renderWorld();
     void renderSubmodel(const Submodel& submodel, const float* origin, const float* angles);
+
+    float lightPoint (const float* p);
 private:
     int _visframecount = 0;
     int _framecount = 0;
@@ -59,5 +61,8 @@ private:
     void markLeaves (mleaf_s* viewleaf);
     void storeEfrags (efrag_s **ppefrag);
     void walkBspTree(mnode_s *node, std::vector<GLuint>& indexBuffer);
+    
+    int recursiveLightPoint (mnode_s* node, const float* start, const float* end);
+
     void loadTextures(texture_s** textures, int numtextures);
 };

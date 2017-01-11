@@ -30,8 +30,8 @@ std::unordered_map<model_t*, LevelRenderer::Submodel> submodels;
 std::unique_ptr<LevelRenderer> levelRenderer;
 
 void drawLevel();
-void drawEntities();
-void drawWeapon();
+void drawEntities(float ambientLight);
+void drawWeapon(float ambientLight);
 
 void R_Init (void)
 {
@@ -61,10 +61,12 @@ void R_RenderView (void)
     glClearBufferfv(GL_COLOR, 0, bgColor);
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
 
+    float ambientLight = levelRenderer->lightPoint(r_origin);
+
     QuakeRenderProgram::getInstance().use();
     drawLevel();
-    drawEntities();
-    drawWeapon();
+    drawEntities(ambientLight);
+    drawWeapon(ambientLight);
 }
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
@@ -188,12 +190,13 @@ void R_SetVrect (vrect_t *pvrect, vrect_t *pvrectin, int lineadj)
 }
 
 // ************************************************************************
+
 void drawLevel()
 {
     levelRenderer->renderWorld();
 }
 
-void drawEntities()
+void drawEntities(float ambientLight)
 {
     for (int i = 0; i < cl_numvisedicts; ++i)
     {
@@ -228,7 +231,8 @@ void drawEntities()
                         currentEntity->frame,
                         cl.time + currentEntity->syncbase,
                         currentEntity->origin,
-                        currentEntity->angles);
+                        currentEntity->angles,
+                        ambientLight);
                 }
             }
             break;
@@ -238,7 +242,7 @@ void drawEntities()
     }
 }
 
-void drawWeapon()
+void drawWeapon(float ambientLight)
 {
     auto entity = &cl.viewent;
     auto model = entity->model;
@@ -248,5 +252,5 @@ void drawWeapon()
     if (!renderer)
         return;
     renderer->render(entity->frame, cl.time + entity->syncbase,
-        entity->origin, entity->angles);
+        entity->origin, entity->angles, ambientLight);
 }
