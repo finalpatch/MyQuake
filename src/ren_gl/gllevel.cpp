@@ -1,5 +1,5 @@
 #include "gllevel.h"
-#include "glrenderprg.h"
+#include "glrenderpass.h"
 
 #include <algorithm>
 
@@ -204,7 +204,7 @@ void LevelRenderer::renderSubmodel(const Submodel& submodel, const float* origin
 
     TextureBinding lightmapBinding(*_lightmap, 0);
 
-    QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view,
+    DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
         _lightStyles.data(), {0, 0, 0, 0});
     _vao->bind();
     glDrawArrays(GL_TRIANGLES, submodel.first, submodel.count);
@@ -233,7 +233,7 @@ void LevelRenderer::renderWorld()
     // bind the light map
     TextureBinding lightmapBinding(*_lightmap, 0);
 
-    QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view,
+    DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
         _lightStyles.data(), {0, 0, 0, 0});
     _vao->bind();
 

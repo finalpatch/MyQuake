@@ -14,7 +14,7 @@ enum {
     kVertexInputTexCoord2 = 4
 };
 
-class QuakeRenderProgram
+class DefaultRenderPass
 {
     struct UniformBlock
     {
@@ -26,9 +26,9 @@ class QuakeRenderProgram
         GLfloat ambientLight[4];
     };
 public:
-    static QuakeRenderProgram& getInstance()
+    static DefaultRenderPass& getInstance()
     {
-        static QuakeRenderProgram singleton;
+        static DefaultRenderPass singleton;
         return singleton;
     }
 
@@ -57,7 +57,7 @@ public:
     }
 
 private:
-    QuakeRenderProgram()
+    DefaultRenderPass()
     {
         std::vector<Shader> shaders;
         shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs.glsl"));

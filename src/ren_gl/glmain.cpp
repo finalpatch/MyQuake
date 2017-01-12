@@ -4,7 +4,7 @@
 
 #include "glmodel.h"
 #include "gllevel.h"
-#include "glrenderprg.h"
+#include "glrenderpass.h"
 
 extern "C"
 {
@@ -63,7 +63,7 @@ void R_RenderView (void)
 
     float ambientLight = levelRenderer->lightPoint(r_origin);
 
-    QuakeRenderProgram::getInstance().use();
+    DefaultRenderPass::getInstance().use();
     drawLevel();
     drawEntities(ambientLight);
     drawWeapon(ambientLight);

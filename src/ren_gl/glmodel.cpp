@@ -1,5 +1,5 @@
 #include "glmodel.h"
-#include "glrenderprg.h"
+#include "glrenderpass.h"
 
 #include <algorithm>
 
@@ -110,7 +110,7 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
 
     const static GLfloat nullLightStyles[MAX_LIGHTSTYLES] = {};
 
-    QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view,
+    DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
         nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0});
     _vao->bind();
     auto offset = _frames[frameId]->getVertexOffset(time);
