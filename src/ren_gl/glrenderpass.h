@@ -10,8 +10,8 @@ enum {
     kVertexInputVertex   = 0,
     kVertexInputNormal   = 1,
     kVertexInputTexCoord = 2,
-    kVertexInputStyle    = 3,
-    kVertexInputTexCoord2 = 4
+    kVertexInputTexCoord2 = 3,
+    kVertexInputStyle    = 4,
 };
 
 enum {
@@ -31,6 +31,15 @@ class DefaultRenderPass
         GLfloat ambientLight[4];
     };
 public:
+    struct VertexAttr
+    {
+        GLvec3 vertex;
+        GLvec3 normal;
+        GLvec2 lightuv;
+        GLvec2 diffuseuv;
+        GLubyte styles[4];
+    };
+
     static DefaultRenderPass& getInstance()
     {
         static DefaultRenderPass singleton;

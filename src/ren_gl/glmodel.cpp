@@ -81,11 +81,11 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
 
     _vao->enableAttrib(kVertexInputVertex);
     _vao->format(kVertexInputVertex, 3, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputVertex, *_vtxBuf, sizeof(GLvec3));
+    _vao->vertexBuffer(kVertexInputVertex, *_vtxBuf);
 
     _vao->enableAttrib(kVertexInputNormal);
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_TRUE);
-    _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf, sizeof(GLvec3));
+    _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf);
 
     _vao->indexBuffer(*_idxBuf);
 }

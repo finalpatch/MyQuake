@@ -1,5 +1,4 @@
 #include "gllevel.h"
-#include "glrenderpass.h"
 
 #include <algorithm>
 
@@ -27,7 +26,7 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
     }
 
     Submodel submodel;
-    submodel.first =  _vertexBuffer.size();
+    submodel.first =  _vertexData.size();
 
     for (int i = 0; i < brushModel->nummodelsurfaces; ++i)
     {
@@ -57,7 +56,7 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
         }
 
         // store vertex index for this polygon
-        surface.rendererData = _vertexBuffer.size();
+        surface.rendererData = _vertexData.size();
 
         int firstVertexIndex;
         int previousVertexIndex;
@@ -99,12 +98,7 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
 
                 for (int i = 0; i < 3; ++i) 
                 {
-                    // vertex
-                    _vertexBuffer.emplace_back(GLvec3{v[i][0], v[i][1], v[i][2]});
-                    // surface normal
-                    _normalBuffer.emplace_back(GLvec3{n[0], n[1], n[2]});
-
-                    // texture coordinate
+                    // compute texture coordinate
                     auto s =  v[i][0] * surface.texinfo->vecs[0][0] +
                              -v[i][2] * surface.texinfo->vecs[0][1] +
                               v[i][1] * surface.texinfo->vecs[0][2] +
@@ -114,29 +108,18 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
                               v[i][1] * surface.texinfo->vecs[1][2] +
                               surface.texinfo->vecs[1][3];
 
-                    _texCoord2Buffer.emplace_back(GLvec2{
-                        s / surface.texinfo->texture->width,
-                        t / surface.texinfo->texture->height
-                    });
-
-                    s -= surface.texturemins[0];
-                    t -= surface.texturemins[1];
-                    
-                    // convert to lightmap coordinate
-                    // lightmap is 1/16 res
-                    // don't know why it needs the +1
-                    // but otherwise the positions doesn't look right'
-                    s = s / 16 + 1;
-                    t = t / 16 + 1;
+                    DefaultRenderPass::VertexAttr vert{
+                        {v[i][0], v[i][1], v[i][2]},
+                        {n[0], n[1], n[2]},
+                        { (s - surface.texturemins[0]) / 16 + 1, (t - surface.texturemins[1]) / 16 + 1 },
+                        { s / surface.texinfo->texture->width, t / surface.texinfo->texture->height },
+                        { surface.styles[0], surface.styles[1], surface.styles[2], surface.styles[3] }
+                    };
 
                     if (!lightmapTile.empty())
-                    {
-                        lightmapTile.translateCoordinate(s, t);
-                    }
-                    _texCoordBuffer.emplace_back(GLvec2{s, t});
-                    _styleBuffer.emplace_back(std::array<GLubyte, 4>{
-                        surface.styles[0], surface.styles[1],
-                        surface.styles[2], surface.styles[3]});
+                        lightmapTile.translateCoordinate(vert.lightuv[0], vert.lightuv[1]);
+                    
+                    _vertexData.push_back(vert);
                 }
 
                 previousVertexIndex = currentVertexIndex;
@@ -144,49 +127,46 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
         }
     }
 
-    submodel.count = _vertexBuffer.size() - submodel.first;
+    submodel.count = _vertexData.size() - submodel.first;
     return submodel;
 }
 
 void LevelRenderer::build()
 {
-    _vtxBuf = std::make_unique<GLBuffer<GLvec3>>(_vertexBuffer);
-    _nrmBuf = std::make_unique<GLBuffer<GLvec3>>(_normalBuffer);
-    _uvBuf  = std::make_unique<GLBuffer<GLvec2>>(_texCoordBuffer);
-    _uv2Buf  = std::make_unique<GLBuffer<GLvec2>>(_texCoord2Buffer);
-    _styBuf = std::make_unique<GLBuffer<std::array<GLubyte, 4>>>(_styleBuffer);
-    _idxBuf = std::make_unique<GLBuffer<GLuint>>(nullptr, _vertexBuffer.size(), kGlBufferDynamic);
+    _vertexBuf = std::make_unique<GLBuffer<DefaultRenderPass::VertexAttr>>(_vertexData);
+    _idxBuf = std::make_unique<GLBuffer<GLuint>>(nullptr, _vertexData.size(), kGlBufferDynamic);
 
     _vao = std::make_unique<VertexArray>();
 
     _vao->enableAttrib(kVertexInputVertex);
     _vao->format(kVertexInputVertex, 3, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputVertex, *_vtxBuf, _vtxBuf->stride());
+    _vao->vertexBuffer(kVertexInputVertex, *_vertexBuf, 0);
 
     _vao->enableAttrib(kVertexInputNormal);
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf, _nrmBuf->stride());
+    _vao->vertexBuffer(kVertexInputNormal, *_vertexBuf,
+        offsetof(DefaultRenderPass::VertexAttr, normal));
 
     _vao->enableAttrib(kVertexInputTexCoord);
     _vao->format(kVertexInputTexCoord, 2, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputTexCoord, *_uvBuf, _uvBuf->stride());
-
-    _vao->enableAttrib(kVertexInputStyle);
-    _vao->format(kVertexInputStyle, 4, GL_UNSIGNED_BYTE, GL_TRUE);
-    _vao->vertexBuffer(kVertexInputStyle, *_styBuf, _styBuf->stride());
+    _vao->vertexBuffer(kVertexInputTexCoord, *_vertexBuf,
+        offsetof(DefaultRenderPass::VertexAttr, lightuv));
 
     _vao->enableAttrib(kVertexInputTexCoord2);
     _vao->format(kVertexInputTexCoord2, 2, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputTexCoord2, *_uv2Buf, _uv2Buf->stride());
+    _vao->vertexBuffer(kVertexInputTexCoord2, *_vertexBuf,
+        offsetof(DefaultRenderPass::VertexAttr, diffuseuv));
+
+    _vao->enableAttrib(kVertexInputStyle);
+    _vao->format(kVertexInputStyle, 4, GL_UNSIGNED_BYTE, GL_TRUE);
+    _vao->vertexBuffer(kVertexInputStyle, *_vertexBuf,
+        offsetof(DefaultRenderPass::VertexAttr, styles));
 
     _vao->indexBuffer(*_idxBuf);
 
     _lightmap = _lightmapBuilder->buildTexture(GL_CLAMP_TO_EDGE, GL_NEAREST, GL_LINEAR);
 
-    { std::vector<GLvec3> temp; _vertexBuffer.swap(temp); }
-    { std::vector<GLvec3> temp; _normalBuffer.swap(temp); }
-    { std::vector<GLvec2> temp; _texCoordBuffer.swap(temp); }
-    { std::vector<std::array<GLubyte, 4>> temp; _styleBuffer.swap(temp); }
+    _vertexData.clear();
     _lightmapBuilder.reset();
 }
 

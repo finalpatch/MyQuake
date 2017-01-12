@@ -15,8 +15,8 @@ layout(std140) uniform UniformBlock
 layout (location = 0) in vec4 position;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 texCoord;
-layout (location = 3) in vec4 styles;
-layout (location = 4) in vec2 texCoord2;
+layout (location = 3) in vec2 texCoord2;
+layout (location = 4) in vec4 styles;
 
 out VS_OUT
 {

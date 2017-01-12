@@ -1,6 +1,7 @@
 #pragma once
 
 #include "glhelper.h"
+#include "glrenderpass.h"
 
 struct model_s;
 struct mleaf_s;
@@ -35,11 +36,7 @@ private:
 
     // vertex data
     std::unique_ptr<VertexArray> _vao;
-    std::unique_ptr<GLBuffer<GLvec3>> _vtxBuf;
-    std::unique_ptr<GLBuffer<GLvec3>> _nrmBuf;
-    std::unique_ptr<GLBuffer<GLvec2>> _uvBuf;
-    std::unique_ptr<GLBuffer<GLvec2>> _uv2Buf;
-    std::unique_ptr<GLBuffer<std::array<GLubyte, 4>>> _styBuf;
+    std::unique_ptr<GLBuffer<DefaultRenderPass::VertexAttr>> _vertexBuf;
     std::unique_ptr<GLBuffer<GLuint>> _idxBuf;
 
     // textures
@@ -57,11 +54,7 @@ private:
     std::vector<TextureChain> _diffusemaps;
     
     // builders
-    std::vector<GLvec3> _vertexBuffer;
-    std::vector<GLvec3> _normalBuffer;
-    std::vector<GLvec2> _texCoordBuffer;
-    std::vector<GLvec2> _texCoord2Buffer;
-    std::vector<std::array<GLubyte, 4>> _styleBuffer;
+    std::vector<DefaultRenderPass::VertexAttr> _vertexData;
     std::unique_ptr<TextureAtlasBuilder<Texture::RGBA>> _lightmapBuilder;
 
     void animateLight();

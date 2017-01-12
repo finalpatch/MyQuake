@@ -50,14 +50,20 @@ protected:
 class GLGenericBuffer : public GLObject
 {
 public:
-    void bind(GLenum target)
+    GLGenericBuffer()
+    {}
+    GLGenericBuffer(GLGenericBuffer&& other) : GLObject(std::move(other))
+    {}
+    virtual void bind(GLenum target)
     {
         glBindBuffer(target, _handle);
     }
-    void bind(GLenum target, GLuint index)
+    virtual void bind(GLenum target, GLuint index)
     {
         glBindBufferBase(target, index, _handle);
     }
+    virtual size_t size() const = 0;
+    virtual size_t stride() const = 0;
 };
 
 template<typename T>
@@ -87,7 +93,7 @@ public:
         : GLBuffer(data.data(), data.size(), flags)
     {}
 #endif
-    GLBuffer(GLBuffer&& other) : GLObject(std::move(other))
+    GLBuffer(GLBuffer&& other) : GLGenericBuffer(std::move(other))
     {
         _size = other.size();
     }
@@ -96,11 +102,11 @@ public:
         if (_handle)
             glDeleteBuffers(1, &_handle);
     }
-    size_t size() const
+    size_t size() const override
     {
         return _size;
     }
-    size_t stride() const
+    size_t stride() const override
     {
         return sizeof(T);
     }
@@ -265,15 +271,15 @@ public:
             (const void*)_formats[index]._offset);
 #endif
     }
-    void vertexBuffer(GLuint index, GLGenericBuffer& buf, GLsizei stride, GLintptr offset = 0)
+    void vertexBuffer(GLuint index, GLGenericBuffer& buf, GLintptr offset = 0)
     {
 #ifdef GL45
         glVertexArrayAttribBinding(_handle, index, index);
-        glVertexArrayVertexBuffer(_handle, index, buf.handle(), offset, stride);
+        glVertexArrayVertexBuffer(_handle, index, buf.handle(), offset, buf.stride());
 #else
         if (_formats.size() <= index)
             _formats.resize(index + 1);
-        _formats[index]._stride = stride;
+        _formats[index]._stride = buf.stride();
         _formats[index]._offset = offset;
         
         buf.bind(GL_ARRAY_BUFFER);
