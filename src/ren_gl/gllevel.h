@@ -12,19 +12,13 @@ struct texture_s;
 class LevelRenderer
 {
 public:
-    struct Submodel
-    {
-        GLuint first;
-        GLuint count;
-    };
-
     LevelRenderer();
     
-    Submodel loadBrushModel(const model_s* levelModel);
+    void loadBrushModel(const model_s* levelModel);
     void build();
 
     void renderWorld();
-    void renderSubmodel(const Submodel& submodel, const float* origin, const float* angles);
+    void renderSubmodel(const model_s* submodel, const float* origin, const float* angles);
 
     float lightPoint (const float* p);
 private:

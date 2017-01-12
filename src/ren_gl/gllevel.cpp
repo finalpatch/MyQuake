@@ -18,15 +18,12 @@ LevelRenderer::LevelRenderer() :
 {
 }
 
-LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
+void LevelRenderer::loadBrushModel(const model_s* brushModel)
 {
     if (brushModel == cl.worldmodel) 
     {
         loadTextures(brushModel->textures, brushModel->numtextures);
     }
-
-    Submodel submodel;
-    submodel.first =  _vertexData.size();
 
     for (int i = 0; i < brushModel->nummodelsurfaces; ++i)
     {
@@ -126,9 +123,6 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
             }
         }
     }
-
-    submodel.count = _vertexData.size() - submodel.first;
-    return submodel;
 }
 
 void LevelRenderer::build()
@@ -170,8 +164,28 @@ void LevelRenderer::build()
     _lightmapBuilder.reset();
 }
 
-void LevelRenderer::renderSubmodel(const Submodel& submodel, const float* origin, const float* angles)
+void LevelRenderer::renderSubmodel(const model_s* submodel, const float* origin, const float* angles)
 {
+    for (auto& textureChain: _diffusemaps)
+        textureChain.vertexes.clear();
+
+    for (int i = 0; i < submodel->nummodelsurfaces; ++i)
+    {
+        const auto& surf = submodel->surfaces[submodel->firstmodelsurface + i];
+
+        auto textureChainIndex = surf.texinfo->texture->rendererData;
+        auto& textureChain = _diffusemaps[textureChainIndex];
+
+        GLuint baseidx = surf.rendererData;
+        for (int j = 0; j < surf.numedges - 2; ++j)
+        {
+            textureChain.vertexes.insert(
+                textureChain.vertexes.end(),
+                {baseidx, baseidx+1, baseidx+2});
+            baseidx += 3;
+        }
+    }
+
     glm::vec3 pos = qvec2glm(origin);
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);
@@ -182,20 +196,28 @@ void LevelRenderer::renderSubmodel(const Submodel& submodel, const float* origin
         * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1});
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
+    // bind the light map
     TextureBinding lightmapBinding(*_lightmap, kTextureUnitLight);
 
     DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
         _lightStyles.data(), {0, 0, 0, 0});
     _vao->bind();
-    glDrawArrays(GL_TRIANGLES, submodel.first, submodel.count);
+    for (auto& textureChain: _diffusemaps)
+    {
+        if (!textureChain.vertexes.empty())
+        {
+            // bind diffuse map
+            TextureBinding diffusemapBinding(textureChain.texture, kTextureUnitDiffuse);
+            _idxBuf->update(textureChain.vertexes);
+            glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
+        }
+    }
 }
 
 void LevelRenderer::renderWorld()
 {
     for (auto& textureChain: _diffusemaps)
-    {
         textureChain.vertexes.clear();
-    }
 
     animateLight();
     _framecount++;
@@ -221,6 +243,7 @@ void LevelRenderer::renderWorld()
     {
         if (!textureChain.vertexes.empty())
         {
+            // bind diffuse map
             TextureBinding diffusemapBinding(textureChain.texture, kTextureUnitDiffuse);
             _idxBuf->update(textureChain.vertexes);
             glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);

@@ -27,7 +27,6 @@ qboolean r_cache_thrash = qfalse;
  */
 
 std::unordered_map<model_t*, std::unique_ptr<ModelRenderer>> modelRenderers;
-std::unordered_map<model_t*, LevelRenderer::Submodel> submodels;
 std::unique_ptr<LevelRenderer> levelRenderer;
 
 void drawLevel();
@@ -85,7 +84,6 @@ void R_NewMap (void)
     levelRenderer = std::make_unique<LevelRenderer>();
 
     modelRenderers.clear();
-    submodels.clear();
 
     for (int i = 0; i < MAX_MODELS; ++i)
     {
@@ -94,12 +92,8 @@ void R_NewMap (void)
             continue;
         if (model->type == mod_brush)
         {
-            if (submodels.find(model) == submodels.end())
-            {
-                Con_Printf("load brush model %d: %s\n", i, model->name);
-                auto submodel = levelRenderer->loadBrushModel(model);
-                submodels.emplace(model, submodel);
-            }
+            Con_Printf("load brush model %d: %s\n", i, model->name);
+            levelRenderer->loadBrushModel(model);
         }
         else if (model->type == mod_alias)
         {
@@ -213,9 +207,8 @@ void drawEntities(float ambientLight)
                 auto model = currentEntity->model;
                 if (model == cl.worldmodel)
                     break;
-                const auto& submodel = submodels[model];
                 levelRenderer->renderSubmodel(
-                        submodel,
+                        model,
                         currentEntity->origin,
                         currentEntity->angles);
             }
