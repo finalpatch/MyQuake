@@ -60,8 +60,7 @@ private:
     void animateLight();
     void markLeaves (mleaf_s* viewleaf);
     void storeEfrags (efrag_s **ppefrag);
-    void walkBspTree(mnode_s *node);
-    
+    void walkBspTree(mnode_s *node);    
     int recursiveLightPoint (mnode_s* node, const float* start, const float* end);
 
     void loadTextures(texture_s** textures, int numtextures);

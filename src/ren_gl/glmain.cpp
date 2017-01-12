@@ -18,8 +18,9 @@ qboolean r_cache_thrash = qfalse;
 
 /*
  TODO:
- * Light maps
- * Diffuse maps
+ * Diffuse maps on brush models
+ * Alias model skins
+ * Texture animation
  * Procedural textures
  * Particals
  * Dynamic lighting
