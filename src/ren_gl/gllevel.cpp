@@ -181,7 +181,7 @@ void LevelRenderer::build()
 
     _vao->indexBuffer(*_idxBuf);
 
-    _lightmap = _lightmapBuilder->build();
+    _lightmap = _lightmapBuilder->buildTexture(GL_CLAMP_TO_EDGE, GL_NEAREST, GL_LINEAR);
 
     { std::vector<GLvec3> temp; _vertexBuffer.swap(temp); }
     { std::vector<GLvec3> temp; _normalBuffer.swap(temp); }

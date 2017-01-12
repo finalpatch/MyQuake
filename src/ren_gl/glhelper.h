@@ -310,7 +310,9 @@ public:
         RGBA,
         GRAY
     };
-    Texture(GLenum target, GLuint width, GLuint height, Type type, const GLvoid* data = nullptr)
+    Texture(GLenum target, GLuint width, GLuint height, Type type,
+        GLenum wrap, GLenum minfilter, GLenum magfilter,
+        const GLvoid* data = nullptr)
     {
         _target = target;
         glGenTextures(1, &_handle);
@@ -332,10 +334,10 @@ public:
         glBindTexture(_target, _handle);
         glTexImage2D(_target, 0, _internalFormat, width, height, 0, _format, _datatype, data);
         
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minfilter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magfilter);
     }
     Texture(Texture&& other) : GLObject(std::move(other))
     {
@@ -550,9 +552,10 @@ public:
         return {x, y, w, h, _textureImage.width(), _textureImage.height()};
     }
 
-    std::unique_ptr<Texture> build()
+    std::unique_ptr<Texture> buildTexture(GLenum wrap, GLenum minfilter, GLenum magfilter)
     {
-        auto texture = std::make_unique<Texture>(GL_TEXTURE_2D, _textureImage.width(), _textureImage.height(), TYPE, _textureImage.row(0));
+        auto texture = std::make_unique<Texture>(GL_TEXTURE_2D, _textureImage.width(), _textureImage.height(), TYPE,
+            wrap, minfilter, magfilter, _textureImage.row(0));
         return std::move(texture);
     }
 };
