@@ -22,7 +22,19 @@ void LevelRenderer::loadBrushModel(const model_s* brushModel)
 {
     if (brushModel == cl.worldmodel) 
     {
-        loadTextures(brushModel->textures, brushModel->numtextures);
+        _diffusemaps.clear();
+        _diffusemaps.emplace_back(1, 1);
+        for (int i = 0; i < brushModel->numtextures; ++i)
+            loadTexture(brushModel->textures[i]);
+    }
+    else
+    {
+        for (int i = 0; i < brushModel->nummodelsurfaces; ++i)
+        {
+            auto& surface = brushModel->surfaces[brushModel->firstmodelsurface + i];
+            if (surface.texinfo->texture->rendererData == 0)
+                loadTexture(surface.texinfo->texture);
+        }        
     }
 
     for (int i = 0; i < brushModel->nummodelsurfaces; ++i)
@@ -515,27 +527,20 @@ float LevelRenderer::lightPoint (const float* p)
 	return r / 255.0f;
 }
 
-void LevelRenderer::loadTextures(texture_s** textures, int numtextures)
+void LevelRenderer::loadTexture(texture_s* texture)
 {
-    _diffusemaps.clear();
-    for (int i = 0; i < numtextures; ++i)
+    Con_Printf("loading texture: %s\n", texture->name);
+    texture->rendererData = _diffusemaps.size();
+    unsigned w = texture->width;
+    unsigned h = texture->height;
+    _diffusemaps.emplace_back(w, h);
+    std::vector<uint32_t> rgbtex(w * h);
+    for (int mip = 0; mip < 1; ++mip)
     {
-        texture_s* texture = textures[i];
-        if (!texture)
-            continue;
-        Con_Printf("loading texture: %s\n", texture->name);
-        texture->rendererData = _diffusemaps.size();
-        unsigned w = texture->width;
-        unsigned h = texture->height;
-        _diffusemaps.emplace_back(w, h);
-        std::vector<uint32_t> rgbtex(w * h);
-        for (int mip = 0; mip < 1; ++mip)
-        {
-            const uint8_t* pixels = reinterpret_cast<const uint8_t*>(texture) + texture->offsets[mip];
-            for(int i = 0; i < w * h; ++i)
-                rgbtex[i] = vid_current_palette[pixels[i]];
-            _diffusemaps.back().texture.update(0, 0, w, h, rgbtex.data(), mip);
-            w >>= 1; h >>= 1;
-        }
-   }
+        const uint8_t* pixels = reinterpret_cast<const uint8_t*>(texture) + texture->offsets[mip];
+        for(int i = 0; i < w * h; ++i)
+            rgbtex[i] = vid_current_palette[pixels[i]];
+        _diffusemaps.back().texture.update(0, 0, w, h, rgbtex.data(), mip);
+        w >>= 1; h >>= 1;
+    }
 }

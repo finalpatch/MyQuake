@@ -57,5 +57,5 @@ private:
     void walkBspTree(mnode_s *node);    
     int recursiveLightPoint (mnode_s* node, const float* start, const float* end);
 
-    void loadTextures(texture_s** textures, int numtextures);
+    void loadTexture(texture_s* texture);
 };
