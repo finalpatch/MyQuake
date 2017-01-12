@@ -108,18 +108,19 @@ LevelRenderer::Submodel LevelRenderer::loadBrushModel(const model_s* brushModel)
                     auto s =  v[i][0] * surface.texinfo->vecs[0][0] +
                              -v[i][2] * surface.texinfo->vecs[0][1] +
                               v[i][1] * surface.texinfo->vecs[0][2] +
-                              surface.texinfo->vecs[0][3] -
-                              surface.texturemins[0];
+                              surface.texinfo->vecs[0][3];
                     auto t =  v[i][0] * surface.texinfo->vecs[1][0] +
                              -v[i][2] * surface.texinfo->vecs[1][1] +
                               v[i][1] * surface.texinfo->vecs[1][2] +
-                              surface.texinfo->vecs[1][3] -
-                              surface.texturemins[1];
+                              surface.texinfo->vecs[1][3];
 
                     _texCoord2Buffer.emplace_back(GLvec2{
-                        s / surface.extents[0],
-                        t / surface.extents[1]
+                        s / surface.texinfo->texture->width,
+                        t / surface.texinfo->texture->height
                     });
+
+                    s -= surface.texturemins[0];
+                    t -= surface.texturemins[1];
                     
                     // convert to lightmap coordinate
                     // lightmap is 1/16 res
@@ -201,7 +202,7 @@ void LevelRenderer::renderSubmodel(const Submodel& submodel, const float* origin
         * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1});
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
-    TextureBinding lightmapBinding(*_lightmap, GL_TEXTURE0);
+    TextureBinding lightmapBinding(*_lightmap, 0);
 
     QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view,
         _lightStyles.data(), {0, 0, 0, 0});
@@ -230,8 +231,7 @@ void LevelRenderer::renderWorld()
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
     // bind the light map
-    TextureBinding lightmapBinding(*_lightmap, GL_TEXTURE0);
-    QuakeRenderProgram::getInstance().tex("lightmap0", 0);
+    TextureBinding lightmapBinding(*_lightmap, 0);
 
     QuakeRenderProgram::getInstance().setup(vid.width, vid.height, model, view,
         _lightStyles.data(), {0, 0, 0, 0});
@@ -241,8 +241,7 @@ void LevelRenderer::renderWorld()
     {
         if (!textureChain.vertexes.empty())
         {
-            TextureBinding diffusemapBinding(textureChain.texture, GL_TEXTURE1);
-            QuakeRenderProgram::getInstance().tex("diffusemap", 1);
+            TextureBinding diffusemapBinding(textureChain.texture, 1);
             _idxBuf->update(textureChain.vertexes);
             glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
         }

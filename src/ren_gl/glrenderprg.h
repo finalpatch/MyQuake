@@ -48,16 +48,12 @@ public:
         _ufmBuf->update(&uniformBlock);
     }
 
-    void tex(const std::string& name, int unit)
-    {
-        auto loc = glGetUniformLocation(_prog->handle(), name.c_str());
-        glUniform1i(loc, unit);
-    }
-
     void use()
     {
         _prog->use();
         _prog->setUniformBlock("UniformBlock", * _ufmBuf);
+        _prog->assignTextureUnit("lightmap0", 0);
+        _prog->assignTextureUnit("diffusemap", 1);
     }
 
 private:

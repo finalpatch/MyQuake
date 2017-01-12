@@ -201,6 +201,11 @@ public:
         else
             printf("invalid uniform name\n");
     }
+    void assignTextureUnit(const char* textureName, GLint textureUnit)
+    {
+        auto loc = glGetUniformLocation(_handle, textureName);
+        glUniform1i(loc, textureUnit);
+    }
 };
 
 class VertexArray : public GLObject
@@ -327,8 +332,8 @@ public:
         glBindTexture(_target, _handle);
         glTexImage2D(_target, 0, _internalFormat, width, height, 0, _format, _datatype, data);
         
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
@@ -374,10 +379,11 @@ class TextureBinding
     const GLenum _boundUnit;
     const Texture& _texture;
 public:
-    TextureBinding(const Texture& texture, GLenum textureUnit = GL_TEXTURE0) :
-        _boundUnit(textureUnit), _texture(texture)
+    TextureBinding(const Texture& texture, GLuint textureUnit = 0) :
+        _boundUnit(static_cast<GLenum>(textureUnit + static_cast<GLuint>(GL_TEXTURE0))),
+        _texture(texture)
     {
-        glActiveTexture(textureUnit);
+        glActiveTexture(_boundUnit);
         glBindTexture(texture.target(), texture.handle());
     }
     TextureBinding(const TextureBinding&) = delete;
