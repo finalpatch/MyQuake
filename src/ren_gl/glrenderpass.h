@@ -7,16 +7,16 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 enum {
-    kVertexInputVertex   = 0,
-    kVertexInputNormal   = 1,
-    kVertexInputTexCoord = 2,
-    kVertexInputTexCoord2 = 3,
-    kVertexInputStyle    = 4,
+    kVertexInputVertex,
+    kVertexInputNormal,
+    kVertexInputLightTexCoord,
+    kVertexInputDiffuseTexCoord,
+    kVertexInputStyle,
 };
 
 enum {
-    kTextureUnitLight   = 0,
-    kTextureUnitDiffuse = 1,
+    kTextureUnitLight,
+    kTextureUnitDiffuse,
 };
 
 class DefaultRenderPass

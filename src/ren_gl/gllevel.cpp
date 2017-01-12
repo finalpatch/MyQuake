@@ -147,14 +147,14 @@ void LevelRenderer::build()
     _vao->vertexBuffer(kVertexInputNormal, *_vertexBuf,
         offsetof(DefaultRenderPass::VertexAttr, normal));
 
-    _vao->enableAttrib(kVertexInputTexCoord);
-    _vao->format(kVertexInputTexCoord, 2, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputTexCoord, *_vertexBuf,
+    _vao->enableAttrib(kVertexInputLightTexCoord);
+    _vao->format(kVertexInputLightTexCoord, 2, GL_FLOAT, GL_FALSE);
+    _vao->vertexBuffer(kVertexInputLightTexCoord, *_vertexBuf,
         offsetof(DefaultRenderPass::VertexAttr, lightuv));
 
-    _vao->enableAttrib(kVertexInputTexCoord2);
-    _vao->format(kVertexInputTexCoord2, 2, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputTexCoord2, *_vertexBuf,
+    _vao->enableAttrib(kVertexInputDiffuseTexCoord);
+    _vao->format(kVertexInputDiffuseTexCoord, 2, GL_FLOAT, GL_FALSE);
+    _vao->vertexBuffer(kVertexInputDiffuseTexCoord, *_vertexBuf,
         offsetof(DefaultRenderPass::VertexAttr, diffuseuv));
 
     _vao->enableAttrib(kVertexInputStyle);
