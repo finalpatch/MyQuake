@@ -202,7 +202,7 @@ void LevelRenderer::renderSubmodel(const Submodel& submodel, const float* origin
         * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1});
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
-    TextureBinding lightmapBinding(*_lightmap, 0);
+    TextureBinding lightmapBinding(*_lightmap, kTextureUnitLight);
 
     DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
         _lightStyles.data(), {0, 0, 0, 0});
@@ -231,7 +231,7 @@ void LevelRenderer::renderWorld()
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
     // bind the light map
-    TextureBinding lightmapBinding(*_lightmap, 0);
+    TextureBinding lightmapBinding(*_lightmap, kTextureUnitLight);
 
     DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
         _lightStyles.data(), {0, 0, 0, 0});
@@ -241,7 +241,7 @@ void LevelRenderer::renderWorld()
     {
         if (!textureChain.vertexes.empty())
         {
-            TextureBinding diffusemapBinding(textureChain.texture, 1);
+            TextureBinding diffusemapBinding(textureChain.texture, kTextureUnitDiffuse);
             _idxBuf->update(textureChain.vertexes);
             glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
         }

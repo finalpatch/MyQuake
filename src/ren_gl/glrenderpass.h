@@ -14,6 +14,11 @@ enum {
     kVertexInputTexCoord2 = 4
 };
 
+enum {
+    kTextureUnitLight   = 0,
+    kTextureUnitDiffuse = 1,
+};
+
 class DefaultRenderPass
 {
     struct UniformBlock
@@ -52,8 +57,8 @@ public:
     {
         _prog->use();
         _prog->setUniformBlock("UniformBlock", * _ufmBuf);
-        _prog->assignTextureUnit("lightmap0", 0);
-        _prog->assignTextureUnit("diffusemap", 1);
+        _prog->assignTextureUnit("lightmap0", kTextureUnitLight);
+        _prog->assignTextureUnit("diffusemap", kTextureUnitDiffuse);
     }
 
 private:
