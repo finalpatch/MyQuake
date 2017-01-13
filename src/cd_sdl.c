@@ -53,6 +53,12 @@ void CDAudio_Resume(void)
 
 void CDAudio_Update(void)
 {
+	static float currentvolume = 0.0f;
+	if (currentvolume != bgmvolume.value)
+	{
+		currentvolume = bgmvolume.value;
+		Mix_VolumeMusic(MIX_MAX_VOLUME * bgmvolume.value);
+	}
 }
 
 
@@ -72,8 +78,8 @@ int CDAudio_Init(void)
 		Con_Printf("loading track %s ... %s\n", filename, tracks[i] ? "done" : "failed");
 	}
 
-	Mix_VolumeMusic(MIX_MAX_VOLUME);
-
+	Mix_VolumeMusic(MIX_MAX_VOLUME * bgmvolume.value);
+	
 	return 0;
 }
 

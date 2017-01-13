@@ -27,13 +27,22 @@ SDL_AudioDeviceID dev = 0;
 const static size_t AUDIO_BUFFER_SAMPLES = 512;
 volatile dma_t sn;
 
-void SDLCALL render_audio (void *userdata, Uint8 * stream, int len)
+void SDLCALL render_audio (void *userdata, Uint8* stream, int len)
 {
 	if ( shm ) {
 		shm->buffer = stream;
 		shm->samplepos += len/(shm->samplebits/8)/2;
 		S_PaintChannels (shm->samplepos);
         shm->buffer = NULL;
+
+        // apply volume control
+        int16_t* p = (int16_t*)stream;
+        int16_t* end = (int16_t*)(stream + len);
+        while (p < end)
+        {
+            *p = round(*p * volume.value);
+            ++p;
+        }
 	}
 }
 
@@ -75,6 +84,7 @@ qboolean SNDDMA_Init(void)
     Con_Printf("  channels %d\n", have.channels);
     Con_Printf("  samples  %d\n", have.samples);
 
+    Cvar_SetValue ("volume", 0.0f);
 	return 1;
 }
 
