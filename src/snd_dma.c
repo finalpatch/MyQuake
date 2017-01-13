@@ -64,8 +64,8 @@ int 		desired_bits = 16;
 
 int sound_started=0;
 
-cvar_t bgmvolume = {"bgmvolume", "0.1", true};
-cvar_t volume = {"volume", "0.1", true};
+cvar_t bgmvolume = {"bgmvolume", "1.0", true};
+cvar_t volume = {"volume", "0.7", true};
 
 cvar_t nosound = {"nosound", "0"};
 cvar_t precache = {"precache", "1"};
