@@ -1,6 +1,7 @@
 #pragma once
 
 #include "glhelper.h"
+#include "glrenderpass.h"
 
 struct model_s;
 
@@ -52,10 +53,9 @@ public:
     void render(int frameId, float time, const float* origin, const float* angles, float ambientLight);
 
 private:
-    std::unique_ptr<VertexArray>        _vao;    // buffer setup
-    std::unique_ptr<GLBuffer<GLvec3>>   _vtxBuf; // vertex buffer
-    std::unique_ptr<GLBuffer<GLvec3>>   _nrmBuf; // normal buffer
-    std::unique_ptr<GLBuffer<GLushort>> _idxBuf; // index buffer
+    std::unique_ptr<VertexArray> _vao;
+    std::unique_ptr<GLBuffer<DefaultRenderPass::VertexAttr>> _vertexBuf;
+    std::unique_ptr<GLBuffer<GLushort>> _idxBuf;
 
     std::vector<std::unique_ptr<ModelFrame>> _frames;
     std::string _name;

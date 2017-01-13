@@ -128,7 +128,7 @@ void LevelRenderer::loadBrushModel(const model_s* brushModel)
                     if (!lightmapTile.empty())
                         lightmapTile.translateCoordinate(vert.lightuv[0], vert.lightuv[1]);
                     
-                    _vertexData.push_back(vert);
+                    _vertexData.push_back(std::move(vert));
                 }
 
                 previousVertexIndex = currentVertexIndex;

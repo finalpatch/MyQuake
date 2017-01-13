@@ -13,18 +13,21 @@ static float r_avertexnormals[][3] = {
 };
 
 static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices,
-    std::vector<GLvec3>& vertices, std::vector<GLvec3>& normals)
+    std::vector<DefaultRenderPass::VertexAttr>& vertexData)
 {
     for(int i = 0; i < modelDesc->numverts; ++i)
     {
-        vertices.emplace_back(GLvec3{
+        DefaultRenderPass::VertexAttr vert{
+            GLvec3{
             scaledVertices[i].v[0] * modelDesc->scale[0] + modelDesc->scale_origin[0],
             scaledVertices[i].v[2] * modelDesc->scale[2] + modelDesc->scale_origin[2],
-            -(scaledVertices[i].v[1] * modelDesc->scale[1] + modelDesc->scale_origin[1])});
-        normals.emplace_back(GLvec3{
+            -(scaledVertices[i].v[1] * modelDesc->scale[1] + modelDesc->scale_origin[1])},
+            GLvec3{
             r_avertexnormals[scaledVertices[i].lightnormalindex][0],
             r_avertexnormals[scaledVertices[i].lightnormalindex][2],
-            -r_avertexnormals[scaledVertices[i].lightnormalindex][1]});
+            -r_avertexnormals[scaledVertices[i].lightnormalindex][1]}
+        };
+        vertexData.push_back(std::move(vert));
     }
 }
 
@@ -33,8 +36,7 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
     auto modelHeader = (const aliashdr_t*)Mod_Extradata(const_cast<model_s*>(entityModel));
 	auto modelDesc = (const mdl_t*)((byte *)modelHeader + modelHeader->model);
 
-    std::vector<GLvec3> vertices;
-    std::vector<GLvec3> normals;
+    std::vector<DefaultRenderPass::VertexAttr> vertexData;
     std::vector<GLushort> indexes;
 
     for (int frameId = 0; frameId < entityModel->numframes; ++frameId)
@@ -42,8 +44,8 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
         if (modelHeader->frames[frameId].type == ALIAS_SINGLE)
         {
     	    auto scaledVertices = (const trivertx_t*)((byte*)modelHeader + modelHeader->frames[frameId].frame);
-            VertexRange vertexRange = {uint32_t(vertices.size()), 0.0f};
-            addVertices(modelDesc, scaledVertices, vertices, normals);
+            VertexRange vertexRange = {uint32_t(vertexData.size()), 0.0f};
+            addVertices(modelDesc, scaledVertices, vertexData);
             _frames.push_back(std::make_unique<SingleModelFrame>(vertexRange, modelHeader->frames[frameId].name));
         }
         else
@@ -57,8 +59,8 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
             for (int i = 0; i < numframes; ++i)
             {
                 auto scaledVertices = (const trivertx_t*)((byte*)modelHeader + group->frames[i].frame);
-                VertexRange vertexRange = {uint32_t(vertices.size()), intervals[i]};
-                addVertices(modelDesc, scaledVertices, vertices, normals);
+                VertexRange vertexRange = {uint32_t(vertexData.size()), intervals[i]};
+                addVertices(modelDesc, scaledVertices, vertexData);
                 groupedFrame->addSubFrame(vertexRange);
             }
             _frames.push_back(std::move(groupedFrame));
@@ -73,19 +75,19 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
         indexes.push_back(triangles[i].vertindex[2]);
     }
 
-    _vtxBuf = std::make_unique<GLBuffer<GLvec3>>(vertices);
-    _nrmBuf = std::make_unique<GLBuffer<GLvec3>>(normals);
+    _vertexBuf = std::make_unique<GLBuffer<DefaultRenderPass::VertexAttr>>(vertexData);
     _idxBuf = std::make_unique<GLBuffer<GLushort>>(indexes);
 
     _vao = std::make_unique<VertexArray>();
 
     _vao->enableAttrib(kVertexInputVertex);
     _vao->format(kVertexInputVertex, 3, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputVertex, *_vtxBuf);
+    _vao->vertexBuffer(kVertexInputVertex, *_vertexBuf, 0);
 
     _vao->enableAttrib(kVertexInputNormal);
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_TRUE);
-    _vao->vertexBuffer(kVertexInputNormal, *_nrmBuf);
+    _vao->vertexBuffer(kVertexInputNormal, *_vertexBuf,
+        offsetof(DefaultRenderPass::VertexAttr, normal));
 
     _vao->indexBuffer(*_idxBuf);
 }
