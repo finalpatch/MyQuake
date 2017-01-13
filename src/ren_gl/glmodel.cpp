@@ -127,14 +127,14 @@ GroupedModelFrame::GroupedModelFrame(const char* name) : _name(name)
 
 void GroupedModelFrame::addSubFrame(const VertexRange& vertexRange)
 {
-    _subFrames.push_back(vertexRange);
+    _animationFrames.push_back(vertexRange);
 }
 
 uint32_t GroupedModelFrame::getVertexOffset(float time)
 {
-    auto fullinterval = _subFrames.back().timestamp;
+    auto fullinterval = _animationFrames.back().timestamp;
     auto targettime = time - ((int)(time / fullinterval)) * fullinterval;
-    auto vertexRange = std::upper_bound(_subFrames.begin(), _subFrames.end(), targettime,
+    auto vertexRange = std::upper_bound(_animationFrames.begin(), _animationFrames.end(), targettime,
         [](float t, const VertexRange& r) {
             return t < r.timestamp;
         });

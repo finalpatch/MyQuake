@@ -40,7 +40,7 @@ public:
     uint32_t getVertexOffset(float time) override;
     const std::string& getName() const override  { return _name; }
 private:
-    std::vector<VertexRange> _subFrames;
+    std::vector<VertexRange> _animationFrames;
     std::string _name;
 };
 
