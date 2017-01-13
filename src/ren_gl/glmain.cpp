@@ -26,8 +26,8 @@ qboolean r_cache_thrash = qfalse;
  * Dynamic lighting
  */
 
-std::unordered_map<model_t*, std::unique_ptr<ModelRenderer>> modelRenderers;
 std::unique_ptr<LevelRenderer> levelRenderer;
+std::vector<std::unique_ptr<ModelRenderer>> modelRenderers;
 
 void drawLevel();
 void drawEntities(float ambientLight);
@@ -81,13 +81,12 @@ void R_InitSky (struct texture_s *mt)
 
 void R_NewMap (void)
 {
-    levelRenderer = std::make_unique<LevelRenderer>();
-
     modelRenderers.clear();
+    levelRenderer = std::make_unique<LevelRenderer>();
 
     for (int i = 0; i < MAX_MODELS; ++i)
     {
-        auto model = cl.model_precache[i];
+        model_s* model = cl.model_precache[i];
         if (model == nullptr)
             continue;
         if (model->type == mod_brush)
@@ -98,7 +97,8 @@ void R_NewMap (void)
         else if (model->type == mod_alias)
         {
             Con_Printf("load alias model %d: %s\n", i, model->name);
-            modelRenderers.emplace(model, std::make_unique<ModelRenderer>(model));
+            model->rendererData = modelRenderers.size();
+            modelRenderers.emplace_back(std::make_unique<ModelRenderer>(model));
         }
     }
 
@@ -218,16 +218,13 @@ void drawEntities(float ambientLight)
 		case mod_alias:
             {
                 auto model = currentEntity->model;
-                auto& modelRenderer = modelRenderers[model];
-                if (modelRenderer)
-                {
-                    modelRenderer->render(
-                        currentEntity->frame,
-                        cl.time + currentEntity->syncbase,
-                        currentEntity->origin,
-                        currentEntity->angles,
-                        ambientLight);
-                }
+                auto& modelRenderer = modelRenderers[model->rendererData];
+                modelRenderer->render(
+                    currentEntity->frame,
+                    cl.time + currentEntity->syncbase,
+                    currentEntity->origin,
+                    currentEntity->angles,
+                    ambientLight);
             }
             break;
         default:
@@ -242,9 +239,7 @@ void drawWeapon(float ambientLight)
     auto model = entity->model;
     if (!model)
         return;
-    auto& renderer = modelRenderers[model];
-    if (!renderer)
-        return;
+    auto& renderer = modelRenderers[model->rendererData];
     renderer->render(entity->frame, cl.time + entity->syncbase,
         entity->origin, entity->angles, ambientLight);
 }

@@ -371,6 +371,7 @@ typedef struct model_s
 //
 	cache_user_t	cache;		// only access through Mod_Extradata
 
+	uintptr_t rendererData;
 } model_t;
 
 //============================================================================
