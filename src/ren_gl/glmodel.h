@@ -59,7 +59,7 @@ private:
     std::unique_ptr<Texture> _texture;
 };
 
-class GroupdedSkin : public Skin
+class GroupedSkin : public Skin
 {
 public:
     GroupedSkin() {}
@@ -85,7 +85,8 @@ public:
 private:
     std::unique_ptr<VertexArray> _vao;
     std::unique_ptr<GLBuffer<DefaultRenderPass::VertexAttr>> _vertexBuf;
-    std::unique_ptr<GLBuffer<GLushort>> _idxBuf;
+    std::unique_ptr<GLBuffer<GLushort>> _frontSideIdxBuf;
+    std::unique_ptr<GLBuffer<GLushort>> _backSideIdxBuf;
 
     std::vector<std::unique_ptr<ModelFrame>> _frames;
     std::string _name;

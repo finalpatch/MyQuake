@@ -42,8 +42,6 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
     auto pstverts = (const stvert_t*)((byte *)modelHeader + modelHeader->stverts);
 
     std::vector<DefaultRenderPass::VertexAttr> vertexData;
-    std::vector<GLushort> indexes;
-
     for (int frameId = 0; frameId < entityModel->numframes; ++frameId)
     {
         if (modelHeader->frames[frameId].type == ALIAS_SINGLE)
@@ -71,13 +69,18 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
             _frames.push_back(std::move(groupedFrame));
         }
     }
+    _vertexBuf = std::make_unique<GLBuffer<DefaultRenderPass::VertexAttr>>(vertexData);
 
+    std::vector<GLushort> frontIndexes;
+    std::vector<GLushort> backIndexes;
     auto triangles = (const mtriangle_t*)((byte *)modelHeader + modelHeader->triangles);
     for(int i = 0; i < modelDesc->numtris; ++i)
-        indexes.insert(indexes.end(), triangles[i].vertindex, triangles[i].vertindex + 3);
-
-    _vertexBuf = std::make_unique<GLBuffer<DefaultRenderPass::VertexAttr>>(vertexData);
-    _idxBuf = std::make_unique<GLBuffer<GLushort>>(indexes);
+    {
+        auto& side = triangles[i].facesfront ? frontIndexes : backIndexes;
+        side.insert(side.end(), triangles[i].vertindex, triangles[i].vertindex + 3);
+    }
+    _frontSideIdxBuf = std::make_unique<GLBuffer<GLushort>>(frontIndexes);
+    _backSideIdxBuf = std::make_unique<GLBuffer<GLushort>>(backIndexes);
 
     _vao = std::make_unique<VertexArray>();
 
@@ -89,8 +92,6 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_TRUE);
     _vao->vertexBuffer(kVertexInputNormal, *_vertexBuf,
         offsetof(DefaultRenderPass::VertexAttr, normal));
-
-    _vao->indexBuffer(*_idxBuf);
 }
 
 ModelRenderer::~ModelRenderer()
@@ -117,7 +118,11 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
         nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0});
     _vao->bind();
     auto offset = _frames[frameId]->getVertexOffset(time);
-    glDrawElementsBaseVertex(GL_TRIANGLES, _idxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
+
+    _vao->indexBuffer(*_frontSideIdxBuf);
+    glDrawElementsBaseVertex(GL_TRIANGLES, _frontSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
+    _vao->indexBuffer(*_backSideIdxBuf);
+    glDrawElementsBaseVertex(GL_TRIANGLES, _backSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
 }
 
 // *******************
