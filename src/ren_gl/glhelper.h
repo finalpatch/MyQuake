@@ -2,7 +2,7 @@
 
 #include "glcommon.h"
 #include <algorithm>
-#define GL45
+
 #ifdef GL45
     #include <glbinding/gl45core/gl.h>
     using namespace gl45core;
