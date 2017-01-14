@@ -237,7 +237,8 @@ void drawWeapon()
     if (!model)
         return;
     auto& renderer = modelRenderers[model->rendererData];
-    float ambientLight = levelRenderer->lightPoint(entity->origin);
+    // allways give some light on gun
+    float ambientLight = std::max(0.1f, levelRenderer->lightPoint(entity->origin));
     renderer->render(entity->frame, cl.time + entity->syncbase,
         entity->origin, entity->angles, ambientLight);
 }
