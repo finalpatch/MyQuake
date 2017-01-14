@@ -18,6 +18,12 @@ struct ModelFrame
     virtual const std::string& getName() const  = 0;
 };
 
+struct Skin
+{
+    virtual ~Skin() {}
+    virtual void bindTexture(float time) = 0;
+};
+
 class SingleModelFrame : public ModelFrame
 {
 public:
@@ -36,12 +42,36 @@ class GroupedModelFrame : public ModelFrame
 {
 public:
     GroupedModelFrame(const char* name);
-    void addSubFrame(const VertexRange& vertexRange);
+    void addAnimationFrame(const VertexRange& vertexRange);
     uint32_t getVertexOffset(float time) override;
     const std::string& getName() const override  { return _name; }
 private:
     std::vector<VertexRange> _animationFrames;
     std::string _name;
+};
+
+class SingleSkin : public Skin
+{
+public:
+    SingleSkin(int w, int h, void* data);
+    void bindTexture(float time) override;
+private:
+    std::unique_ptr<Texture> _texture;
+};
+
+class GroupdedSkin : public Skin
+{
+public:
+    GroupedSkin() {}
+    void addAnimationFrame(int w, int h, void* data, float timestamp);
+    void bindTexture(float time) override;
+private:
+    struct TextureFrame
+    {
+        Texture texture;
+        float timestamp;
+    };
+    std::vector<TextureFrame> _frames;
 };
 
 class ModelRenderer

@@ -40,7 +40,7 @@ private:
         Texture texture;
         std::vector<GLuint> vertexes;
         
-        TextureChain(GLuint width, GLuint height) : 
+        TextureChain(GLuint width, GLuint height) :
             texture(GL_TEXTURE_2D, width, height, Texture::RGBA,
                 GL_REPEAT, GL_NEAREST, GL_NEAREST)
         {}

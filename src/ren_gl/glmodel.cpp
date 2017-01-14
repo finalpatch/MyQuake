@@ -12,20 +12,24 @@ static float r_avertexnormals[][3] = {
     #include "anorms.h"
 };
 
-static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices,
+static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices, const stvert_t* stverts,
     std::vector<DefaultRenderPass::VertexAttr>& vertexData)
 {
     for(int i = 0; i < modelDesc->numverts; ++i)
     {
         DefaultRenderPass::VertexAttr vert{
             GLvec3{
-            scaledVertices[i].v[0] * modelDesc->scale[0] + modelDesc->scale_origin[0],
-            scaledVertices[i].v[2] * modelDesc->scale[2] + modelDesc->scale_origin[2],
-            -(scaledVertices[i].v[1] * modelDesc->scale[1] + modelDesc->scale_origin[1])},
+                scaledVertices[i].v[0] * modelDesc->scale[0] + modelDesc->scale_origin[0],
+                scaledVertices[i].v[2] * modelDesc->scale[2] + modelDesc->scale_origin[2],
+                -(scaledVertices[i].v[1] * modelDesc->scale[1] + modelDesc->scale_origin[1])},
             GLvec3{
-            r_avertexnormals[scaledVertices[i].lightnormalindex][0],
-            r_avertexnormals[scaledVertices[i].lightnormalindex][2],
-            -r_avertexnormals[scaledVertices[i].lightnormalindex][1]}
+                r_avertexnormals[scaledVertices[i].lightnormalindex][0],
+                r_avertexnormals[scaledVertices[i].lightnormalindex][2],
+                -r_avertexnormals[scaledVertices[i].lightnormalindex][1]},
+            GLvec2{
+                (float)(stverts->s >> 16) / modelDesc->skinwidth,
+                (float)(stverts->t >> 16) / modelDesc->skinheight,
+            }
         };
         vertexData.push_back(std::move(vert));
     }
@@ -35,6 +39,7 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
 {
     auto modelHeader = (const aliashdr_t*)Mod_Extradata(const_cast<model_s*>(entityModel));
 	auto modelDesc = (const mdl_t*)((byte *)modelHeader + modelHeader->model);
+    auto pstverts = (const stvert_t*)((byte *)modelHeader + modelHeader->stverts);
 
     std::vector<DefaultRenderPass::VertexAttr> vertexData;
     std::vector<GLushort> indexes;
@@ -45,7 +50,7 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
         {
     	    auto scaledVertices = (const trivertx_t*)((byte*)modelHeader + modelHeader->frames[frameId].frame);
             VertexRange vertexRange = {uint32_t(vertexData.size()), 0.0f};
-            addVertices(modelDesc, scaledVertices, vertexData);
+            addVertices(modelDesc, scaledVertices, pstverts, vertexData);
             _frames.push_back(std::make_unique<SingleModelFrame>(vertexRange, modelHeader->frames[frameId].name));
         }
         else
@@ -60,8 +65,8 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
             {
                 auto scaledVertices = (const trivertx_t*)((byte*)modelHeader + group->frames[i].frame);
                 VertexRange vertexRange = {uint32_t(vertexData.size()), intervals[i]};
-                addVertices(modelDesc, scaledVertices, vertexData);
-                groupedFrame->addSubFrame(vertexRange);
+                addVertices(modelDesc, scaledVertices, pstverts, vertexData);
+                groupedFrame->addAnimationFrame(vertexRange);
             }
             _frames.push_back(std::move(groupedFrame));
         }
@@ -69,11 +74,7 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
 
     auto triangles = (const mtriangle_t*)((byte *)modelHeader + modelHeader->triangles);
     for(int i = 0; i < modelDesc->numtris; ++i)
-    {
-        indexes.push_back(triangles[i].vertindex[0]);
-        indexes.push_back(triangles[i].vertindex[1]);
-        indexes.push_back(triangles[i].vertindex[2]);
-    }
+        indexes.insert(indexes.end(), triangles[i].vertindex, triangles[i].vertindex + 3);
 
     _vertexBuf = std::make_unique<GLBuffer<DefaultRenderPass::VertexAttr>>(vertexData);
     _idxBuf = std::make_unique<GLBuffer<GLushort>>(indexes);
@@ -125,7 +126,7 @@ GroupedModelFrame::GroupedModelFrame(const char* name) : _name(name)
 {
 }
 
-void GroupedModelFrame::addSubFrame(const VertexRange& vertexRange)
+void GroupedModelFrame::addAnimationFrame(const VertexRange& vertexRange)
 {
     _animationFrames.push_back(vertexRange);
 }
