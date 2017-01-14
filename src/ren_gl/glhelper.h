@@ -149,7 +149,7 @@ public:
                 glGetShaderiv(_handle, GL_INFO_LOG_LENGTH, &errLength);
                 std::vector<char> errLog(errLength+1, '\0');
                 glGetShaderInfoLog(_handle, errLength, &errLength, errLog.data());
-                printf(errLog.data());
+                printf"%s", errLog.data());
                 assert(false);
             }
         }
