@@ -19,7 +19,6 @@ qboolean r_cache_thrash = qfalse;
 /*
  TODO:
  * Fullbrights
- * Alias model skins
  * Texture animation
  * Procedural textures
  * Particals
