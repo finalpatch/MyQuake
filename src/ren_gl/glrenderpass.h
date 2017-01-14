@@ -51,7 +51,7 @@ public:
     }
 
     void setup(float w, float h, const glm::mat4& model, const glm::mat4& view,
-        const GLfloat* lightStyles, const glm::vec4& ambientLight, bool backSide = 0)
+        const GLfloat* lightStyles, const glm::vec4& ambientLight, bool backSide = false)
     {
         auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 5000.0f);
         UniformBlock uniformBlock;
@@ -63,7 +63,7 @@ public:
         memcpy(uniformBlock.lightStyles, lightStyles, sizeof(uniformBlock.lightStyles));
         memcpy(uniformBlock.ambientLight, glm::value_ptr(ambientLight), sizeof(uniformBlock.ambientLight));
 
-        uniformBlock.flags = backSide;
+        uniformBlock.flags = backSide ? 1 : 0;
 
         _ufmBuf->update(&uniformBlock);
     }

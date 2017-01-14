@@ -160,12 +160,12 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
     TextureBinding diffusemapBinding(_skins[0]->getTexture(time), kTextureUnitDiffuse);
     // front side
     DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
-        nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, 0);
+        nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, false);
     _vao->indexBuffer(*_frontSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _frontSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
     // back side
     DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
-        nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, 1);
+        nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, true);
     _vao->indexBuffer(*_backSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _backSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
 }
