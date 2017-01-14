@@ -43,7 +43,7 @@ void LevelRenderer::loadBrushModel(const model_s* brushModel)
 
         // read lightmaps
         TextureTile lightmapTile;
-        static_assert(MAXLIGHTMAPS == 4); // we use rgba texture for the 4 lightmaps
+        static_assert(MAXLIGHTMAPS == 4, "we use rgba texture for the 4 lightmaps");
         const uint8_t* lightmapData = surface.samples;
         if (lightmapData)
         {

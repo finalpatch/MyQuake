@@ -29,8 +29,8 @@ std::unique_ptr<LevelRenderer> levelRenderer;
 std::vector<std::unique_ptr<ModelRenderer>> modelRenderers;
 
 void drawLevel();
-void drawEntities(float ambientLight);
-void drawWeapon(float ambientLight);
+void drawEntities();
+void drawWeapon();
 
 void R_Init (void)
 {
@@ -60,12 +60,10 @@ void R_RenderView (void)
     glClearBufferfv(GL_COLOR, 0, bgColor);
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
 
-    float ambientLight = levelRenderer->lightPoint(r_origin);
-
     DefaultRenderPass::getInstance().use();
     drawLevel();
-    drawEntities(ambientLight);
-    drawWeapon(ambientLight);
+    drawEntities();
+    drawWeapon();
 }
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
@@ -190,7 +188,7 @@ void drawLevel()
     levelRenderer->renderWorld();
 }
 
-void drawEntities(float ambientLight)
+void drawEntities()
 {
     for (int i = 0; i < cl_numvisedicts; ++i)
     {
@@ -223,7 +221,7 @@ void drawEntities(float ambientLight)
                     cl.time + currentEntity->syncbase,
                     currentEntity->origin,
                     currentEntity->angles,
-                    ambientLight);
+                    levelRenderer->lightPoint(currentEntity->origin));
             }
             break;
         default:
@@ -232,13 +230,14 @@ void drawEntities(float ambientLight)
     }
 }
 
-void drawWeapon(float ambientLight)
+void drawWeapon()
 {
     auto entity = &cl.viewent;
     auto model = entity->model;
     if (!model)
         return;
     auto& renderer = modelRenderers[model->rendererData];
+    float ambientLight = levelRenderer->lightPoint(entity->origin);
     renderer->render(entity->frame, cl.time + entity->syncbase,
         entity->origin, entity->angles, ambientLight);
 }
