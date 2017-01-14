@@ -2,7 +2,7 @@
 
 #include "glcommon.h"
 #include <algorithm>
-
+#define GL45
 #ifdef GL45
     #include <glbinding/gl45core/gl.h>
     using namespace gl45core;
@@ -239,8 +239,10 @@ public:
 #endif
     }
     VertexArray(VertexArray&& other) :
-        GLObject(std::move(other)),
-        _formats(std::move(other._formats))
+        GLObject(std::move(other))
+#ifndef GL45
+        ,_formats(std::move(other._formats))
+#endif
     {
     }
     ~VertexArray() override
