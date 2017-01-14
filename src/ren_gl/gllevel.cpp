@@ -535,12 +535,16 @@ void LevelRenderer::loadTexture(texture_s* texture)
     unsigned h = texture->height;
     _diffusemaps.emplace_back(w, h);
     std::vector<uint32_t> rgbtex(w * h);
-    for (int mip = 0; mip < 1; ++mip)
+    _diffusemaps.back().texture.setMaxMipLevel(MIPLEVELS - 1);
+    for (int mip = 0; mip < MIPLEVELS; ++mip)
     {
         const uint8_t* pixels = reinterpret_cast<const uint8_t*>(texture) + texture->offsets[mip];
         for(int i = 0; i < w * h; ++i)
             rgbtex[i] = vid_current_palette[pixels[i]];
-        _diffusemaps.back().texture.update(0, 0, w, h, rgbtex.data(), mip);
+        if (mip == 0)
+            _diffusemaps.back().texture.update(0, 0, w, h, rgbtex.data(), mip);
+        else
+            _diffusemaps.back().texture.addMipmap(w, h, rgbtex.data(), mip);
         w >>= 1; h >>= 1;
     }
 }

@@ -8,6 +8,7 @@
     using namespace gl45core;
 #else
     #include <glbinding/gl33core/gl.h>
+    #include <glbinding/gl/extension.h> 
     using namespace gl33core;
 #endif
 
@@ -351,6 +352,10 @@ public:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minfilter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magfilter);
+
+        float aniso = 0.0f;
+        glGetFloatv(gl::GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso);
+        glTexParameterf(GL_TEXTURE_2D, gl::GL_TEXTURE_MAX_ANISOTROPY_EXT, std::min(8.0f, aniso));
     }
     Texture(Texture&& other) : GLObject(std::move(other))
     {
@@ -377,6 +382,15 @@ public:
     GLuint height() const
     {
         return _height;
+    }
+    void setMaxMipLevel(GLuint level)
+    {
+        glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level);
+    }
+    void addMipmap(GLuint w, GLuint h, const GLvoid* data, GLuint level)
+    {
+        glBindTexture(_target, _handle);
+        glTexImage2D(_target, level, _internalFormat, w, h, 0, _format, _datatype, data);
     }
     void update(GLint x, GLint y, GLuint w, GLuint h, const GLvoid* data, GLuint level = 0)
     {

@@ -42,7 +42,7 @@ private:
         
         TextureChain(GLuint width, GLuint height) :
             texture(GL_TEXTURE_2D, width, height, Texture::RGBA,
-                GL_REPEAT, GL_NEAREST, GL_NEAREST)
+                GL_REPEAT, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST)
         {}
     };
     std::vector<TextureChain> _diffusemaps;
