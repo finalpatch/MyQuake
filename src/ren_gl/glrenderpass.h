@@ -11,7 +11,8 @@ enum {
     kVertexInputNormal,
     kVertexInputLightTexCoord,
     kVertexInputDiffuseTexCoord,
-    kVertexInputStyle,
+    kVertexInputLightStyle,
+    kVertexInputFlags
 };
 
 enum {
@@ -29,6 +30,8 @@ class DefaultRenderPass
 
         GLfloat lightStyles[64];
         GLfloat ambientLight[4];
+
+        GLuint flags;
     };
 public:
     struct VertexAttr
@@ -38,6 +41,7 @@ public:
         GLvec2 lightuv;
         GLvec2 diffuseuv;
         GLubyte styles[4];
+        GLuint vtxflags;
     };
 
     static DefaultRenderPass& getInstance()
@@ -47,7 +51,7 @@ public:
     }
 
     void setup(float w, float h, const glm::mat4& model, const glm::mat4& view,
-        const GLfloat* lightStyles, const glm::vec4& ambientLight)
+        const GLfloat* lightStyles, const glm::vec4& ambientLight, bool backSide = 0)
     {
         auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 5000.0f);
         UniformBlock uniformBlock;
@@ -58,6 +62,8 @@ public:
 
         memcpy(uniformBlock.lightStyles, lightStyles, sizeof(uniformBlock.lightStyles));
         memcpy(uniformBlock.ambientLight, glm::value_ptr(ambientLight), sizeof(uniformBlock.ambientLight));
+
+        uniformBlock.flags = backSide;
 
         _ufmBuf->update(&uniformBlock);
     }

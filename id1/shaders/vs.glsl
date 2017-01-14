@@ -1,6 +1,8 @@
 #version 330 core
 
 #define MAX_LIGHTSTYLES 64
+#define FLAG_BACKSIDE 1u
+#define VFLAG_ONSEAM 1u
 
 layout(std140) uniform UniformBlock
 {
@@ -10,19 +12,22 @@ layout(std140) uniform UniformBlock
 
     vec4 lightStyles[MAX_LIGHTSTYLES / 4];
     vec4 ambientLight;
+
+    uint flags;
 } uniforms;
 
 layout (location = 0) in vec4 position;
 layout (location = 1) in vec3 normal;
-layout (location = 2) in vec2 texCoord;
-layout (location = 3) in vec2 texCoord2;
+layout (location = 2) in vec2 lightTexCoord;
+layout (location = 3) in vec2 diffuseTexCoord;
 layout (location = 4) in vec4 styles;
+layout (location = 5) in uint vtxflags;
 
 out VS_OUT
 {
     vec4 color;
-    vec2 texcoord;
-    vec2 texcoord2;
+    vec2 lightTexCoord;
+    vec2 diffuseTexCoord;
     vec4 lightScales;
 } vs_out;
 
@@ -37,8 +42,11 @@ void main(void)
     mat4 t = uniforms.projection * uniforms.view * uniforms.model;
     gl_Position = t * position;
     vs_out.color = vec4(l, l, l, 1.0);
-    vs_out.texcoord = texCoord;
-    vs_out.texcoord2 = texCoord2;
+    vs_out.lightTexCoord = lightTexCoord;
+    if (((uniforms.flags & FLAG_BACKSIDE) != 0u) && ((vtxflags & VFLAG_ONSEAM) != 0u))
+        vs_out.diffuseTexCoord = diffuseTexCoord + vec2(0.5, 0.0);
+    else
+        vs_out.diffuseTexCoord = diffuseTexCoord;
 
     uvec4 ustyles = uvec4(styles * 255);
     uvec4 style_h  = (ustyles / 4u) % 16u;

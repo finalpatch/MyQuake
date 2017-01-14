@@ -21,7 +21,7 @@ struct ModelFrame
 struct Skin
 {
     virtual ~Skin() {}
-    virtual void bindTexture(float time) = 0;
+    virtual const Texture& getTexture(float time) = 0;
 };
 
 class SingleModelFrame : public ModelFrame
@@ -53,18 +53,18 @@ private:
 class SingleSkin : public Skin
 {
 public:
-    SingleSkin(int w, int h, void* data);
-    void bindTexture(float time) override;
+    SingleSkin(GLuint w, GLuint h, const void* data);
+    const Texture& getTexture(float time) override;
 private:
-    std::unique_ptr<Texture> _texture;
+    Texture _texture;
 };
 
 class GroupedSkin : public Skin
 {
 public:
     GroupedSkin() {}
-    void addAnimationFrame(int w, int h, void* data, float timestamp);
-    void bindTexture(float time) override;
+    void addAnimationFrame(GLuint w, GLuint h, const void* data, float timestamp);
+    const Texture& getTexture(float time) override;
 private:
     struct TextureFrame
     {
@@ -87,7 +87,7 @@ private:
     std::unique_ptr<GLBuffer<DefaultRenderPass::VertexAttr>> _vertexBuf;
     std::unique_ptr<GLBuffer<GLushort>> _frontSideIdxBuf;
     std::unique_ptr<GLBuffer<GLushort>> _backSideIdxBuf;
-
+    std::vector<std::unique_ptr<Skin>> _skins;
     std::vector<std::unique_ptr<ModelFrame>> _frames;
     std::string _name;
 };

@@ -12,6 +12,8 @@ static float r_avertexnormals[][3] = {
     #include "anorms.h"
 };
 
+extern uint32_t vid_current_palette[256];
+
 static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices, const stvert_t* stverts,
     std::vector<DefaultRenderPass::VertexAttr>& vertexData)
 {
@@ -26,10 +28,12 @@ static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices
                 r_avertexnormals[scaledVertices[i].lightnormalindex][0],
                 r_avertexnormals[scaledVertices[i].lightnormalindex][2],
                 -r_avertexnormals[scaledVertices[i].lightnormalindex][1]},
+            GLvec2{}, // no lightmap
             GLvec2{
-                (float)(stverts->s >> 16) / modelDesc->skinwidth,
-                (float)(stverts->t >> 16) / modelDesc->skinheight,
-            }
+                (float)(stverts[i].s >> 16) / modelDesc->skinwidth,
+                (float)(stverts[i].t >> 16) / modelDesc->skinheight},
+            {0, 0, 0, 0}, // no light style
+            stverts[i].onseam ? 1u : 0u
         };
         vertexData.push_back(std::move(vert));
     }
@@ -41,6 +45,30 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
 	auto modelDesc = (const mdl_t*)((byte *)modelHeader + modelHeader->model);
     auto pstverts = (const stvert_t*)((byte *)modelHeader + modelHeader->stverts);
 
+    // load textures
+    for (int skinId = 0; skinId < modelDesc->numskins; ++skinId)
+    {
+        const auto* skindesc = (const maliasskindesc_t*)((byte *)modelHeader + modelHeader->skindesc) + skinId;
+        if (skindesc->type == ALIAS_SKIN_GROUP)
+        {
+            auto skingroup = (const maliasskingroup_t *)((byte *)modelHeader + skindesc->skin);
+            auto groupedSkin = std::make_unique<GroupedSkin>();
+            for (int i = 0; i < skingroup->numskins; ++i)
+            {
+                auto intervals = (const float*)((byte*)modelHeader + skingroup->intervals);
+                groupedSkin->addAnimationFrame(modelDesc->skinwidth, modelDesc->skinheight,
+                    (byte *)modelHeader + skingroup->skindescs[i].skin, intervals[i]);
+            }
+            _skins.push_back(std::move(groupedSkin));
+        }
+        else
+        {
+            _skins.emplace_back(std::make_unique<SingleSkin>(modelDesc->skinwidth, modelDesc->skinheight,
+                (byte *)modelHeader + skindesc->skin));
+        }
+    }
+
+    // load vertexes
     std::vector<DefaultRenderPass::VertexAttr> vertexData;
     for (int frameId = 0; frameId < entityModel->numframes; ++frameId)
     {
@@ -71,6 +99,7 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
     }
     _vertexBuf = std::make_unique<GLBuffer<DefaultRenderPass::VertexAttr>>(vertexData);
 
+    // load triangles
     std::vector<GLushort> frontIndexes;
     std::vector<GLushort> backIndexes;
     auto triangles = (const mtriangle_t*)((byte *)modelHeader + modelHeader->triangles);
@@ -82,6 +111,7 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
     _frontSideIdxBuf = std::make_unique<GLBuffer<GLushort>>(frontIndexes);
     _backSideIdxBuf = std::make_unique<GLBuffer<GLushort>>(backIndexes);
 
+    // setup vertex attributes
     _vao = std::make_unique<VertexArray>();
 
     _vao->enableAttrib(kVertexInputVertex);
@@ -92,6 +122,16 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_TRUE);
     _vao->vertexBuffer(kVertexInputNormal, *_vertexBuf,
         offsetof(DefaultRenderPass::VertexAttr, normal));
+
+    _vao->enableAttrib(kVertexInputDiffuseTexCoord);
+    _vao->format(kVertexInputDiffuseTexCoord, 2, GL_FLOAT, GL_FALSE);
+    _vao->vertexBuffer(kVertexInputDiffuseTexCoord, *_vertexBuf,
+        offsetof(DefaultRenderPass::VertexAttr, diffuseuv));
+
+    _vao->enableAttrib(kVertexInputFlags);
+    _vao->format(kVertexInputFlags, 1, GL_UNSIGNED_INT, GL_FALSE, GL_TRUE/*int*/);
+    _vao->vertexBuffer(kVertexInputFlags, *_vertexBuf,
+        offsetof(DefaultRenderPass::VertexAttr, vtxflags));
 }
 
 ModelRenderer::~ModelRenderer()
@@ -114,13 +154,18 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
 
     const static GLfloat nullLightStyles[MAX_LIGHTSTYLES] = {};
 
-    DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
-        nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0});
     _vao->bind();
     auto offset = _frames[frameId]->getVertexOffset(time);
 
+    TextureBinding diffusemapBinding(_skins[0]->getTexture(time), kTextureUnitDiffuse);
+    // front side
+    DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
+        nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, 0);
     _vao->indexBuffer(*_frontSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _frontSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
+    // back side
+    DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
+        nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, 1);
     _vao->indexBuffer(*_backSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _backSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
 }
@@ -145,4 +190,42 @@ uint32_t GroupedModelFrame::getVertexOffset(float time)
             return t < r.timestamp;
         });
     return vertexRange->offset;
+}
+
+// *******************
+SingleSkin::SingleSkin(GLuint w, GLuint h, const void* data) :
+    _texture(GL_TEXTURE_2D, w, h, Texture::RGBA, GL_REPEAT, GL_NEAREST, GL_NEAREST)
+{
+    std::vector<uint32_t> rgbtex(w * h);
+    const uint8_t* pixels = reinterpret_cast<const uint8_t*>(data);
+    for(int i = 0; i < w * h; ++i)
+        rgbtex[i] = vid_current_palette[pixels[i]];
+    _texture.update(0, 0, w, h, rgbtex.data());
+}
+
+const Texture& SingleSkin::getTexture(float time)
+{
+    return _texture;
+}
+
+void GroupedSkin::addAnimationFrame(GLuint w, GLuint h, const void* data, float timestamp)
+{
+    std::vector<uint32_t> rgbtex(w * h);
+    const uint8_t* pixels = reinterpret_cast<const uint8_t*>(data);
+    for(int i = 0; i < w * h; ++i)
+        rgbtex[i] = vid_current_palette[pixels[i]];
+
+    TextureFrame frame = {{GL_TEXTURE_2D, w, h, Texture::RGBA, GL_REPEAT, GL_NEAREST, GL_NEAREST, rgbtex.data()},
+        timestamp};
+    _frames.push_back(std::move(frame));
+}
+const Texture& GroupedSkin::getTexture(float time)
+{
+    auto fullinterval = _frames.back().timestamp;
+    auto targettime = time - ((int)(time / fullinterval)) * fullinterval;
+    auto i = std::upper_bound(_frames.begin(), _frames.end(), targettime,
+        [](float t, const TextureFrame& r) {
+            return t < r.timestamp;
+        });
+    return i->texture;
 }

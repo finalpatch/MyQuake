@@ -224,6 +224,7 @@ class VertexArray : public GLObject
         GLboolean _normalized = GL_FALSE;
         GLsizei _stride = 16;
         GLintptr _offset = 0;
+        GLboolean _isInt = GL_FALSE;
     };
     std::vector<VertexFormat> _formats;
 #endif
@@ -255,20 +256,20 @@ public:
         glEnableVertexAttribArray(index);
 #endif
     }
-    void format(GLuint index, GLint size, GLenum type, GLboolean normalized)
+    void format(GLuint index, GLint size, GLenum type, GLboolean normalized, GLboolean isInt = GL_FALSE)
     {
 #ifdef GL45
-        glVertexArrayAttribFormat(_handle, index, size, type, normalized, 0);
+        if (!isInt)
+            glVertexArrayAttribFormat(_handle, index, size, type, normalized, 0);
+        else
+            glVertexArrayAttribIFormat(_handle, index, size, type, 0);
 #else
         if (_formats.size() <= index)
             _formats.resize(index + 1);
         _formats[index]._size = size;
         _formats[index]._type = type;
         _formats[index]._normalized = normalized;
-
-        glVertexAttribPointer(index, _formats[index]._size, _formats[index]._type,
-            _formats[index]._normalized, _formats[index]._stride,
-            (const void*)_formats[index]._offset);
+        _formats[index]._isInt = isInt;
 #endif
     }
     void vertexBuffer(GLuint index, GLGenericBuffer& buf, GLintptr offset = 0)
@@ -283,9 +284,13 @@ public:
         _formats[index]._offset = offset;
         
         buf.bind(GL_ARRAY_BUFFER);
-        glVertexAttribPointer(index, _formats[index]._size, _formats[index]._type,
-            _formats[index]._normalized, _formats[index]._stride,
-            (const void*)_formats[index]._offset);
+        if (!_formats[index]._isInt)
+            glVertexAttribPointer(index, _formats[index]._size, _formats[index]._type,
+                _formats[index]._normalized, _formats[index]._stride,
+                (const void*)_formats[index]._offset);
+        else
+            glVertexAttribIPointer(index, _formats[index]._size, _formats[index]._type,
+                _formats[index]._stride, (const void*)_formats[index]._offset);
 #endif
     }
     void indexBuffer(GLGenericBuffer& buf)

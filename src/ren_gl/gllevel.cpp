@@ -163,9 +163,9 @@ void LevelRenderer::build()
     _vao->vertexBuffer(kVertexInputDiffuseTexCoord, *_vertexBuf,
         offsetof(DefaultRenderPass::VertexAttr, diffuseuv));
 
-    _vao->enableAttrib(kVertexInputStyle);
-    _vao->format(kVertexInputStyle, 4, GL_UNSIGNED_BYTE, GL_TRUE);
-    _vao->vertexBuffer(kVertexInputStyle, *_vertexBuf,
+    _vao->enableAttrib(kVertexInputLightStyle);
+    _vao->format(kVertexInputLightStyle, 4, GL_UNSIGNED_BYTE, GL_TRUE);
+    _vao->vertexBuffer(kVertexInputLightStyle, *_vertexBuf,
         offsetof(DefaultRenderPass::VertexAttr, styles));
 
     _vao->indexBuffer(*_idxBuf);
