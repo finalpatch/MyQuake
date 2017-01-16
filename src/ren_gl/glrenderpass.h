@@ -32,6 +32,7 @@ class DefaultRenderPass
         GLfloat ambientLight[4];
 
         GLuint flags;
+        GLuint padding[3];
     };
 public:
     struct VertexAttr
