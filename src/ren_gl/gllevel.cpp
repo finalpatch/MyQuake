@@ -20,7 +20,7 @@ LevelRenderer::LevelRenderer() :
 
 void LevelRenderer::loadBrushModel(const model_s* brushModel)
 {
-    if (brushModel == cl.worldmodel) 
+    if (brushModel == cl.worldmodel)
     {
         _diffusemaps.clear();
         _diffusemaps.emplace_back(1, 1);
@@ -29,12 +29,25 @@ void LevelRenderer::loadBrushModel(const model_s* brushModel)
     }
     else
     {
+        auto loadTextureList = [this](texture_s* tex) {
+            auto total = tex->anim_total;
+            for(int j = 0; j < total; ++j)
+            {
+                if (tex->rendererData == 0)
+                    loadTexture(tex);
+                tex = tex->anim_next;
+            }
+        };
+
         for (int i = 0; i < brushModel->nummodelsurfaces; ++i)
         {
             auto& surface = brushModel->surfaces[brushModel->firstmodelsurface + i];
-            if (surface.texinfo->texture->rendererData == 0)
-                loadTexture(surface.texinfo->texture);
-        }        
+            auto* base = surface.texinfo->texture;
+            loadTextureList(base);
+            auto* alt = base->alternate_anims;
+            if (alt)
+                loadTextureList(alt);
+        }
     }
 
     for (int i = 0; i < brushModel->nummodelsurfaces; ++i)
@@ -69,7 +82,7 @@ void LevelRenderer::loadBrushModel(const model_s* brushModel)
 
         int firstVertexIndex;
         int previousVertexIndex;
-        
+
         for (int j = 0; j < surface.numedges; ++j)
         {
             auto edgeIndex = brushModel->surfedges[surface.firstedge + j];
@@ -105,7 +118,7 @@ void LevelRenderer::loadBrushModel(const model_s* brushModel)
                 if (surface.flags & SURF_PLANEBACK)
                     n *= -1;
 
-                for (int i = 0; i < 3; ++i) 
+                for (int i = 0; i < 3; ++i)
                 {
                     // compute texture coordinate
                     auto s =  v[i][0] * surface.texinfo->vecs[0][0] +
@@ -127,7 +140,7 @@ void LevelRenderer::loadBrushModel(const model_s* brushModel)
 
                     if (!lightmapTile.empty())
                         lightmapTile.translateCoordinate(vert.lightuv[0], vert.lightuv[1]);
-                    
+
                     _vertexData.push_back(std::move(vert));
                 }
 
@@ -176,8 +189,12 @@ void LevelRenderer::build()
     _lightmapBuilder.reset();
 }
 
-void LevelRenderer::renderSubmodel(const model_s* submodel, const float* origin, const float* angles)
+void LevelRenderer::renderSubmodel(const entity_s* entity)
 {
+    const model_s* submodel = entity->model;
+    const float* origin = entity->origin;
+    const float* angles = entity->angles;
+
     for (auto& textureChain: _diffusemaps)
         textureChain.vertexes.clear();
 
@@ -185,7 +202,8 @@ void LevelRenderer::renderSubmodel(const model_s* submodel, const float* origin,
     {
         const auto& surf = submodel->surfaces[submodel->firstmodelsurface + i];
 
-        auto textureChainIndex = surf.texinfo->texture->rendererData;
+        auto texture = textureAnimation(surf.texinfo->texture, entity->frame);
+        auto textureChainIndex = texture->rendererData;
         auto& textureChain = _diffusemaps[textureChainIndex];
 
         GLuint baseidx = surf.rendererData;
@@ -201,7 +219,7 @@ void LevelRenderer::renderSubmodel(const model_s* submodel, const float* origin,
     glm::vec3 pos = qvec2glm(origin);
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);
-    glm::mat4 model = 
+    glm::mat4 model =
         glm::translate(glm::mat4(), pos)
         * glm::rotate(glm::mat4(), glm::radians(angles[1]), {0, 1, 0})
         * glm::rotate(glm::mat4(), glm::radians(angles[0]), {1, 0, 0})
@@ -226,7 +244,7 @@ void LevelRenderer::renderSubmodel(const model_s* submodel, const float* origin,
     }
 }
 
-void LevelRenderer::renderWorld()
+void LevelRenderer::renderWorld(const entity_s* entity)
 {
     for (auto& textureChain: _diffusemaps)
         textureChain.vertexes.clear();
@@ -236,7 +254,7 @@ void LevelRenderer::renderWorld()
 	auto viewleaf = Mod_PointInLeaf(r_origin, cl.worldmodel);
     markLeaves(viewleaf);
 
-    walkBspTree(cl.worldmodel->nodes);
+    walkBspTree(cl.worldmodel->nodes, entity);
 
     glm::vec3 origin = qvec2glm(cl_visedicts[0]->origin);
     glm::vec3 eyePos = qvec2glm(r_origin);
@@ -335,13 +353,13 @@ void LevelRenderer::storeEfrags (efrag_s **ppefrag)
 			ppefrag = &pefrag->leafnext;
 			break;
 
-		default:	
+		default:
 			Sys_Error ("R_StoreEfrags: Bad entity type %d\n", clmodel->type);
 		}
 	}
 }
 
-void LevelRenderer::walkBspTree(mnode_s *node)
+void LevelRenderer::walkBspTree(mnode_s *node, const entity_s* entity)
 {
 	if (node->contents == CONTENTS_SOLID)
 		return;		// solid
@@ -354,7 +372,7 @@ void LevelRenderer::walkBspTree(mnode_s *node)
 		auto pleaf = (mleaf_t *)node;
         for (int i = 0; i < pleaf->nummarksurfaces; ++i)
             pleaf->firstmarksurface[i]->visframe = _visframecount;
-        
+
         if (pleaf->efrags)
             storeEfrags(&pleaf->efrags);
     }
@@ -376,11 +394,11 @@ void LevelRenderer::walkBspTree(mnode_s *node)
 		default:
 			dot = DotProduct (r_origin, plane->normal) - plane->dist;
 			break;
-		}	
+		}
         int side = (dot >= 0) ? 0 : 1;
 
         // visit near
-        walkBspTree(node->children[side]);
+        walkBspTree(node->children[side], entity);
 
         // emit marked polygons
         auto surf = cl.worldmodel->surfaces + node->firstsurface;
@@ -389,7 +407,8 @@ void LevelRenderer::walkBspTree(mnode_s *node)
             if(surf[i].visframe != _visframecount)
                 continue;
 
-            auto textureChainIndex = surf[i].texinfo->texture->rendererData;
+            auto texture = textureAnimation(surf[i].texinfo->texture, entity->frame);
+            auto textureChainIndex = texture->rendererData;
             auto& textureChain = _diffusemaps[textureChainIndex];
 
             GLuint baseidx = surf[i].rendererData;
@@ -403,7 +422,7 @@ void LevelRenderer::walkBspTree(mnode_s *node)
         }
 
         // visit far
-        walkBspTree(node->children[!side]);
+        walkBspTree(node->children[!side], entity);
     }
 }
 
@@ -424,7 +443,7 @@ int LevelRenderer::recursiveLightPoint (mnode_t *node, const float* start, const
 
 	if (node->contents < 0)
 		return -1;		// didn't hit anything
-	
+
 // calculate mid point
 
 // FIXME: optimize for axial
@@ -432,23 +451,23 @@ int LevelRenderer::recursiveLightPoint (mnode_t *node, const float* start, const
 	front = DotProduct (start, plane->normal) - plane->dist;
 	back = DotProduct (end, plane->normal) - plane->dist;
 	side = front < 0;
-	
+
 	if ( (back < 0) == side)
 		return recursiveLightPoint (node->children[side], start, end);
-	
+
 	frac = front / (front-back);
 	mid[0] = start[0] + (end[0] - start[0])*frac;
 	mid[1] = start[1] + (end[1] - start[1])*frac;
 	mid[2] = start[2] + (end[2] - start[2])*frac;
-	
-// go down front side	
+
+// go down front side
 	r = recursiveLightPoint (node->children[side], start, mid);
 	if (r >= 0)
 		return r;		// hit something
-		
+
 	if ( (back < 0) == side )
 		return -1;		// didn't hit anuthing
-		
+
 // check for impact on this node
 
 	surf = cl.worldmodel->surfaces + node->firstsurface;
@@ -458,17 +477,17 @@ int LevelRenderer::recursiveLightPoint (mnode_t *node, const float* start, const
 			continue;	// no lightmaps
 
 		tex = surf->texinfo;
-		
+
 		s = DotProduct (mid, tex->vecs[0]) + tex->vecs[0][3];
 		t = DotProduct (mid, tex->vecs[1]) + tex->vecs[1][3];;
 
 		if (s < surf->texturemins[0] ||
 		t < surf->texturemins[1])
 			continue;
-		
+
 		ds = s - surf->texturemins[0];
 		dt = t - surf->texturemins[1];
-		
+
 		if ( ds > surf->extents[0] || dt > surf->extents[1] )
 			continue;
 
@@ -493,10 +512,10 @@ int LevelRenderer::recursiveLightPoint (mnode_t *node, const float* start, const
 				lightmap += ((surf->extents[0]>>4)+1) *
 						((surf->extents[1]>>4)+1);
 			}
-			
+
 			r >>= 8;
 		}
-		
+
 		return r;
 	}
 
@@ -508,16 +527,16 @@ float LevelRenderer::lightPoint (const float* p)
 {
 	vec3_t		end;
 	int			r;
-	
+
 	if (!cl.worldmodel->lightdata)
 		return 1.0f;
-	
+
 	end[0] = p[0];
 	end[1] = p[1];
 	end[2] = p[2] - 2048;
-	
+
 	r = recursiveLightPoint (cl.worldmodel->nodes, p, end);
-	
+
 	if (r == -1)
 		r = 0;
 
@@ -547,4 +566,33 @@ void LevelRenderer::loadTexture(texture_s* texture)
             _diffusemaps.back().texture.addMipmap(w, h, rgbtex.data(), mip);
         w >>= 1; h >>= 1;
     }
+}
+
+const texture_s* LevelRenderer::textureAnimation(const texture_s* base, int frame)
+{
+	int		reletive;
+	int		count;
+
+	if (frame)
+	{
+		if (base->alternate_anims)
+			base = base->alternate_anims;
+	}
+
+	if (!base->anim_total)
+		return base;
+
+	reletive = (int)(cl.time*10) % base->anim_total;
+
+	count = 0;
+	while (base->anim_min > reletive || base->anim_max <= reletive)
+	{
+		base = base->anim_next;
+		if (!base)
+			Sys_Error ("R_TextureAnimation: broken cycle");
+		if (++count > 100)
+			Sys_Error ("R_TextureAnimation: infinite cycle");
+	}
+
+	return base;
 }

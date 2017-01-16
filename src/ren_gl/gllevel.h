@@ -8,17 +8,18 @@ struct mleaf_s;
 struct mnode_s;
 struct efrag_s;
 struct texture_s;
+struct entity_s;
 
 class LevelRenderer
 {
 public:
     LevelRenderer();
-    
+
     void loadBrushModel(const model_s* levelModel);
     void build();
 
-    void renderWorld();
-    void renderSubmodel(const model_s* submodel, const float* origin, const float* angles);
+    void renderWorld(const entity_s* entity);
+    void renderSubmodel(const entity_s* entity);
 
     float lightPoint (const float* p);
 private:
@@ -39,14 +40,14 @@ private:
     {
         Texture texture;
         std::vector<GLuint> vertexes;
-        
+
         TextureChain(GLuint width, GLuint height) :
             texture(GL_TEXTURE_2D, width, height, Texture::RGBA,
                 GL_REPEAT, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST)
         {}
     };
     std::vector<TextureChain> _diffusemaps;
-    
+
     // builders
     std::vector<DefaultRenderPass::VertexAttr> _vertexData;
     std::unique_ptr<TextureAtlasBuilder<Texture::RGBA>> _lightmapBuilder;
@@ -54,8 +55,9 @@ private:
     void animateLight();
     void markLeaves (mleaf_s* viewleaf);
     void storeEfrags (efrag_s **ppefrag);
-    void walkBspTree(mnode_s *node);    
+    void walkBspTree(mnode_s *node, const entity_s* entity);
     int recursiveLightPoint (mnode_s* node, const float* start, const float* end);
 
     void loadTexture(texture_s* texture);
+    const texture_s* textureAnimation(const texture_s* base, int frame);
 };

@@ -35,10 +35,10 @@ void drawWeapon();
 void R_Init (void)
 {
     glbinding::Binding::initialize();
-    
+
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    
+
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CW);
     glCullFace(GL_BACK);
@@ -106,7 +106,7 @@ void R_ParseParticleEffect (void)
 {
 	vec3_t		org, dir;
 	int			i, count, msgcount, color;
-	
+
 	for (i=0 ; i<3 ; i++)
 		org[i] = MSG_ReadCoord ();
 	for (i=0 ; i<3 ; i++)
@@ -118,7 +118,7 @@ void R_ParseParticleEffect (void)
         count = 1024;
     else
         count = msgcount;
-	
+
 	R_RunParticleEffect (org, dir, color, count);
 }
 
@@ -185,7 +185,7 @@ void R_SetVrect (vrect_t *pvrect, vrect_t *pvrectin, int lineadj)
 
 void drawLevel()
 {
-    levelRenderer->renderWorld();
+    levelRenderer->renderWorld(&cl_entities[0]);
 }
 
 void drawEntities()
@@ -203,11 +203,9 @@ void drawEntities()
             {
                 auto model = currentEntity->model;
                 if (model == cl.worldmodel)
-                    break;
-                levelRenderer->renderSubmodel(
-                        model,
-                        currentEntity->origin,
-                        currentEntity->angles);
+                    break;//levelRenderer->renderWorld(currentEntity);
+                else
+                    levelRenderer->renderSubmodel(currentEntity);
             }
             break;
 		case mod_sprite:
