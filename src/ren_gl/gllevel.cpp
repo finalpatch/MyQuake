@@ -31,6 +31,8 @@ void LevelRenderer::loadBrushModel(const model_s* brushModel)
     {
         auto loadTextureList = [this](texture_s* tex) {
             auto total = tex->anim_total;
+            if (total == 0)
+                total = 1;
             for(int j = 0; j < total; ++j)
             {
                 if (tex->rendererData == 0)
