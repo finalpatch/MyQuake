@@ -54,7 +54,7 @@ public:
     void setup(float w, float h, const glm::mat4& model, const glm::mat4& view,
         const GLfloat* lightStyles, const glm::vec4& ambientLight, bool backSide = false)
     {
-        auto projection = glm::perspective(glm::radians(60.0f), w / h, 0.1f, 5000.0f);
+        auto projection = glm::perspective(glm::radians(60.0f), w / h, 1.0f, 5000.0f) ;
         UniformBlock uniformBlock;
 
         memcpy(uniformBlock.model, glm::value_ptr(model), sizeof(uniformBlock.model));
