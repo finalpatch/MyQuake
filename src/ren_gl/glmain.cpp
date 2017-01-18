@@ -18,9 +18,10 @@ qboolean r_cache_thrash = qfalse;
 
 /*
  TODO:
+ * refactor texture loading
+ * turb texture (SURF_DRAWTURB)
+ * sky texture (SURF_DRAWSKY)
  * Fullbrights
- * Texture animation
- * Procedural textures
  * Particals
  * Dynamic lighting
  */
