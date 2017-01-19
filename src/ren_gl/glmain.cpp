@@ -24,6 +24,7 @@ qboolean r_cache_thrash = qfalse;
  * Fullbrights
  * Particals
  * Dynamic lighting
+ * Post processing
  */
 
 std::unique_ptr<LevelRenderer> levelRenderer;
