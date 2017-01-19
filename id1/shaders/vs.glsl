@@ -14,6 +14,7 @@ layout(std140) uniform UniformBlock
     vec4 ambientLight;
 
     uint flags;
+    float globalTime;
 } uniforms;
 
 layout (location = 0) in vec4 position;

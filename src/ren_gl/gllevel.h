@@ -31,7 +31,7 @@ private:
 
     // vertex data
     std::unique_ptr<VertexArray> _vao;
-    std::unique_ptr<GLBuffer<DefaultRenderPass::VertexAttr>> _vertexBuf;
+    std::unique_ptr<GLBuffer<VertexAttr>> _vertexBuf;
     std::unique_ptr<GLBuffer<GLuint>> _idxBuf;
 
     // textures
@@ -40,6 +40,7 @@ private:
     {
         Texture texture;
         std::vector<GLuint> vertexes;
+        std::vector<GLuint> turbVertexes;
 
         TextureChain(GLuint width, GLuint height) :
             texture(GL_TEXTURE_2D, width, height, Texture::RGBA,
@@ -49,7 +50,7 @@ private:
     std::vector<TextureChain> _diffusemaps;
 
     // builders
-    std::vector<DefaultRenderPass::VertexAttr> _vertexData;
+    std::vector<VertexAttr> _vertexData;
     std::unique_ptr<TextureAtlasBuilder<Texture::RGBA>> _lightmapBuilder;
 
     void animateLight();

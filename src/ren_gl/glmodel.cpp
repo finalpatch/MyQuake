@@ -15,11 +15,11 @@ static float r_avertexnormals[][3] = {
 extern uint32_t vid_current_palette[256];
 
 static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices, const stvert_t* stverts,
-    std::vector<DefaultRenderPass::VertexAttr>& vertexData)
+    std::vector<VertexAttr>& vertexData)
 {
     for(int i = 0; i < modelDesc->numverts; ++i)
     {
-        DefaultRenderPass::VertexAttr vert{
+        VertexAttr vert{
             GLvec3{
                 scaledVertices[i].v[0] * modelDesc->scale[0] + modelDesc->scale_origin[0],
                 scaledVertices[i].v[2] * modelDesc->scale[2] + modelDesc->scale_origin[2],
@@ -69,7 +69,7 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
     }
 
     // load vertexes
-    std::vector<DefaultRenderPass::VertexAttr> vertexData;
+    std::vector<VertexAttr> vertexData;
     for (int frameId = 0; frameId < entityModel->numframes; ++frameId)
     {
         if (modelHeader->frames[frameId].type == ALIAS_SINGLE)
@@ -97,7 +97,7 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
             _frames.push_back(std::move(groupedFrame));
         }
     }
-    _vertexBuf = std::make_unique<GLBuffer<DefaultRenderPass::VertexAttr>>(vertexData);
+    _vertexBuf = std::make_unique<GLBuffer<VertexAttr>>(vertexData);
 
     // load triangles
     std::vector<GLushort> frontIndexes;
@@ -121,17 +121,17 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
     _vao->enableAttrib(kVertexInputNormal);
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_TRUE);
     _vao->vertexBuffer(kVertexInputNormal, *_vertexBuf,
-        offsetof(DefaultRenderPass::VertexAttr, normal));
+        offsetof(VertexAttr, normal));
 
     _vao->enableAttrib(kVertexInputDiffuseTexCoord);
     _vao->format(kVertexInputDiffuseTexCoord, 2, GL_FLOAT, GL_FALSE);
     _vao->vertexBuffer(kVertexInputDiffuseTexCoord, *_vertexBuf,
-        offsetof(DefaultRenderPass::VertexAttr, diffuseuv));
+        offsetof(VertexAttr, diffuseuv));
 
     _vao->enableAttrib(kVertexInputFlags);
     _vao->format(kVertexInputFlags, 1, GL_UNSIGNED_INT, GL_FALSE, GL_TRUE/*int*/);
     _vao->vertexBuffer(kVertexInputFlags, *_vertexBuf,
-        offsetof(DefaultRenderPass::VertexAttr, vtxflags));
+        offsetof(VertexAttr, vtxflags));
 }
 
 ModelRenderer::~ModelRenderer()
@@ -160,12 +160,12 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
     TextureBinding diffusemapBinding(_skins[0]->getTexture(time), kTextureUnitDiffuse);
     // front side
     DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
-        nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, false);
+        nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, 0);
     _vao->indexBuffer(*_frontSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _frontSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
     // back side
     DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
-        nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, true);
+        nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, kFlagBackSide);
     _vao->indexBuffer(*_backSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _backSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
 }

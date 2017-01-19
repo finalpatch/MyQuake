@@ -132,7 +132,7 @@ void LevelRenderer::loadBrushModel(const model_s* brushModel)
                               v[i][1] * surface.texinfo->vecs[1][2] +
                               surface.texinfo->vecs[1][3];
 
-                    DefaultRenderPass::VertexAttr vert{
+                    VertexAttr vert{
                         {v[i][0], v[i][1], v[i][2]},
                         {n[0], n[1], n[2]},
                         { (s - surface.texturemins[0]) / 16 + 1, (t - surface.texturemins[1]) / 16 + 1 },
@@ -154,7 +154,7 @@ void LevelRenderer::loadBrushModel(const model_s* brushModel)
 
 void LevelRenderer::build()
 {
-    _vertexBuf = std::make_unique<GLBuffer<DefaultRenderPass::VertexAttr>>(_vertexData);
+    _vertexBuf = std::make_unique<GLBuffer<VertexAttr>>(_vertexData);
     _idxBuf = std::make_unique<GLBuffer<GLuint>>(nullptr, _vertexData.size(), kGlBufferDynamic);
 
     _vao = std::make_unique<VertexArray>();
@@ -166,22 +166,22 @@ void LevelRenderer::build()
     _vao->enableAttrib(kVertexInputNormal);
     _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_FALSE);
     _vao->vertexBuffer(kVertexInputNormal, *_vertexBuf,
-        offsetof(DefaultRenderPass::VertexAttr, normal));
+        offsetof(VertexAttr, normal));
 
     _vao->enableAttrib(kVertexInputLightTexCoord);
     _vao->format(kVertexInputLightTexCoord, 2, GL_FLOAT, GL_FALSE);
     _vao->vertexBuffer(kVertexInputLightTexCoord, *_vertexBuf,
-        offsetof(DefaultRenderPass::VertexAttr, lightuv));
+        offsetof(VertexAttr, lightuv));
 
     _vao->enableAttrib(kVertexInputDiffuseTexCoord);
     _vao->format(kVertexInputDiffuseTexCoord, 2, GL_FLOAT, GL_FALSE);
     _vao->vertexBuffer(kVertexInputDiffuseTexCoord, *_vertexBuf,
-        offsetof(DefaultRenderPass::VertexAttr, diffuseuv));
+        offsetof(VertexAttr, diffuseuv));
 
     _vao->enableAttrib(kVertexInputLightStyle);
     _vao->format(kVertexInputLightStyle, 4, GL_UNSIGNED_BYTE, GL_TRUE);
     _vao->vertexBuffer(kVertexInputLightStyle, *_vertexBuf,
-        offsetof(DefaultRenderPass::VertexAttr, styles));
+        offsetof(VertexAttr, styles));
 
     _vao->indexBuffer(*_idxBuf);
 
@@ -249,7 +249,10 @@ void LevelRenderer::renderSubmodel(const entity_s* entity)
 void LevelRenderer::renderWorld(const entity_s* entity)
 {
     for (auto& textureChain: _diffusemaps)
+    {
         textureChain.vertexes.clear();
+        textureChain.turbVertexes.clear();
+    }
 
     animateLight();
     _framecount++;
@@ -264,12 +267,13 @@ void LevelRenderer::renderWorld(const entity_s* entity)
     glm::mat4 model;
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
-    // bind the light map
+    _vao->bind();
+
+    // bind the light map, and draw all normal walls
     TextureBinding lightmapBinding(*_lightmap, kTextureUnitLight);
 
     DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
         _lightStyles.data(), {0, 0, 0, 0});
-    _vao->bind();
 
     for (auto& textureChain: _diffusemaps)
     {
@@ -281,6 +285,20 @@ void LevelRenderer::renderWorld(const entity_s* entity)
             glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
         }
     }
+
+    // draw turb textures
+    DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
+        _lightStyles.data(), {0.5, 0.5, 0.5, 0}, kFlagTurbulence);
+    for (auto& textureChain: _diffusemaps)
+    {
+        if (!textureChain.turbVertexes.empty())
+        {
+            // bind diffuse map
+            TextureBinding diffusemapBinding(textureChain.texture, kTextureUnitDiffuse);
+            _idxBuf->update(textureChain.turbVertexes);
+            glDrawElements(GL_TRIANGLES, textureChain.turbVertexes.size(), GL_UNSIGNED_INT, nullptr);
+        }
+    }   
 }
 
 void LevelRenderer::animateLight()
@@ -403,22 +421,27 @@ void LevelRenderer::walkBspTree(mnode_s *node, const entity_s* entity)
         walkBspTree(node->children[side], entity);
 
         // emit marked polygons
-        auto surf = cl.worldmodel->surfaces + node->firstsurface;
         for (int i = 0; i < node->numsurfaces; ++i)
         {
-            if(surf[i].visframe != _visframecount)
+            const auto& surf = cl.worldmodel->surfaces[node->firstsurface + i];
+            if(surf.visframe != _visframecount)
                 continue;
 
-            auto texture = textureAnimation(surf[i].texinfo->texture, entity->frame);
+            auto texture = textureAnimation(surf.texinfo->texture, entity->frame);
             auto textureChainIndex = texture->rendererData;
             auto& textureChain = _diffusemaps[textureChainIndex];
 
-            GLuint baseidx = surf[i].rendererData;
-            for (int j = 0; j < surf[i].numedges - 2; ++j)
+            GLuint baseidx = surf.rendererData;
+
+            std::vector<GLuint>* vertexes;
+            if (surf.flags & SURF_DRAWTURB)
+                vertexes = &textureChain.turbVertexes;
+            else
+                vertexes = &textureChain.vertexes;
+
+            for (int j = 0; j < surf.numedges - 2; ++j)
             {
-                textureChain.vertexes.insert(
-                    textureChain.vertexes.end(),
-                    {baseidx, baseidx+1, baseidx+2});
+                vertexes->insert(vertexes->end(), {baseidx, baseidx+1, baseidx+2});
                 baseidx += 3;
             }
         }

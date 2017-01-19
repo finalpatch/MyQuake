@@ -6,7 +6,10 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-enum {
+extern "C" double Sys_FloatTime (void);
+
+enum
+{
     kVertexInputVertex,
     kVertexInputNormal,
     kVertexInputLightTexCoord,
@@ -15,46 +18,55 @@ enum {
     kVertexInputFlags
 };
 
-enum {
+enum
+{
     kTextureUnitLight,
     kTextureUnitDiffuse,
 };
 
+enum
+{
+    kFlagBackSide = 1,
+    kFlagTurbulence = 2
+};
+
+struct VertexAttr
+{
+    GLvec3 vertex;
+    GLvec3 normal;
+    GLvec2 lightuv;
+    GLvec2 diffuseuv;
+    GLubyte styles[4];
+    GLuint vtxflags;
+};
+
+struct UniformBlock
+{
+    GLfloat model[4 * 4];
+    GLfloat view[4 * 4];
+    GLfloat projection[4 * 4];
+
+    GLfloat lightStyles[64];
+    GLfloat ambientLight[4];
+
+    GLuint flags;
+    GLfloat globalTime;
+    GLuint padding[2];
+};
+
 class DefaultRenderPass
 {
-    struct UniformBlock
-    {
-        GLfloat model[4*4];
-        GLfloat view[4*4];
-        GLfloat projection[4*4];
-
-        GLfloat lightStyles[64];
-        GLfloat ambientLight[4];
-
-        GLuint flags;
-        GLuint padding[3];
-    };
-public:
-    struct VertexAttr
-    {
-        GLvec3 vertex;
-        GLvec3 normal;
-        GLvec2 lightuv;
-        GLvec2 diffuseuv;
-        GLubyte styles[4];
-        GLuint vtxflags;
-    };
-
-    static DefaultRenderPass& getInstance()
+  public:
+    static DefaultRenderPass &getInstance()
     {
         static DefaultRenderPass singleton;
         return singleton;
     }
 
-    void setup(float w, float h, const glm::mat4& model, const glm::mat4& view,
-        const GLfloat* lightStyles, const glm::vec4& ambientLight, bool backSide = false)
+    void setup(float w, float h, const glm::mat4 &model, const glm::mat4 &view,
+               const GLfloat *lightStyles, const glm::vec4 &ambientLight, GLuint flags = 0)
     {
-        auto projection = glm::perspective(glm::radians(60.0f), w / h, 1.0f, 5000.0f) ;
+        auto projection = glm::perspective(glm::radians(60.0f), w / h, 1.0f, 5000.0f);
         UniformBlock uniformBlock;
 
         memcpy(uniformBlock.model, glm::value_ptr(model), sizeof(uniformBlock.model));
@@ -64,7 +76,8 @@ public:
         memcpy(uniformBlock.lightStyles, lightStyles, sizeof(uniformBlock.lightStyles));
         memcpy(uniformBlock.ambientLight, glm::value_ptr(ambientLight), sizeof(uniformBlock.ambientLight));
 
-        uniformBlock.flags = backSide ? 1 : 0;
+        uniformBlock.flags = flags;
+        uniformBlock.globalTime = Sys_FloatTime();
 
         _ufmBuf->update(&uniformBlock);
     }
@@ -72,12 +85,12 @@ public:
     void use()
     {
         _prog->use();
-        _prog->setUniformBlock("UniformBlock", * _ufmBuf);
+        _prog->setUniformBlock("UniformBlock", *_ufmBuf);
         _prog->assignTextureUnit("lightmap0", kTextureUnitLight);
         _prog->assignTextureUnit("diffusemap", kTextureUnitDiffuse);
     }
 
-private:
+  private:
     DefaultRenderPass()
     {
         std::vector<Shader> shaders;

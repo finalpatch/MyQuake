@@ -2,6 +2,8 @@
 
 #define MAX_LIGHTSTYLES 64
 
+#define FLAG_TURBULENCE 2u
+
 layout(std140) uniform UniformBlock
 {
     mat4 model;
@@ -12,6 +14,7 @@ layout(std140) uniform UniformBlock
     vec4 ambientLight;
 
     uint flags;
+    float globalTime;
 } uniforms;
 
 uniform sampler2D lightmap;
@@ -31,5 +34,9 @@ void main(void)
 {
     vec4 lightValues = texture(lightmap, fs_in.lightTexCoord);
     vec4 l = vec4(vec3(dot(lightValues, fs_in.lightScales)) + uniforms.ambientLight.rgb, 1.0);
-    color = texture(diffusemap, fs_in.diffuseTexCoord) * l * 2.0;
+
+    vec2 uv = fs_in.diffuseTexCoord;
+    if ((uniforms.flags & FLAG_TURBULENCE) != 0u)
+        uv += vec2(sin(uniforms.globalTime + uv.y*2.0), cos(uniforms.globalTime + uv.x*2.0)) / 8.0;
+    color = texture(diffusemap, uv) * l * 2.0;
 }
