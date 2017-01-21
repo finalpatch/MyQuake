@@ -58,6 +58,7 @@ private:
     void storeEfrags (efrag_s **ppefrag);
     void walkBspTree(mnode_s *node, const entity_s* entity);
     int recursiveLightPoint (mnode_s* node, const float* start, const float* end);
+    void renderTextureChains(const glm::mat4& modelTrans);
 
     void loadTexture(texture_s* texture);
     const texture_s* textureAnimation(const texture_s* base, int frame);

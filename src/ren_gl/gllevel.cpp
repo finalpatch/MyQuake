@@ -197,9 +197,6 @@ void LevelRenderer::renderSubmodel(const entity_s* entity)
     const float* origin = entity->origin;
     const float* angles = entity->angles;
 
-    for (auto& textureChain: _diffusemaps)
-        textureChain.vertexes.clear();
-
     for (int i = 0; i < submodel->nummodelsurfaces; ++i)
     {
         const auto& surf = submodel->surfaces[submodel->firstmodelsurface + i];
@@ -219,41 +216,17 @@ void LevelRenderer::renderSubmodel(const entity_s* entity)
     }
 
     glm::vec3 pos = qvec2glm(origin);
-    glm::vec3 eyePos = qvec2glm(r_origin);
-    glm::vec3 eyeDirection = qvec2glm(vpn);
     glm::mat4 model =
         glm::translate(glm::mat4(), pos)
         * glm::rotate(glm::mat4(), glm::radians(angles[1]), {0, 1, 0})
         * glm::rotate(glm::mat4(), glm::radians(angles[0]), {1, 0, 0})
         * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1});
-    glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
-    // bind the light map
-    TextureBinding lightmapBinding(*_lightmap, kTextureUnitLight);
-
-    DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
-        _lightStyles.data(), {0, 0, 0, 0});
-    _vao->bind();
-    for (auto& textureChain: _diffusemaps)
-    {
-        if (!textureChain.vertexes.empty())
-        {
-            // bind diffuse map
-            TextureBinding diffusemapBinding(textureChain.texture, kTextureUnitDiffuse);
-            _idxBuf->update(textureChain.vertexes);
-            glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
-        }
-    }
+    renderTextureChains(model);
 }
 
 void LevelRenderer::renderWorld(const entity_s* entity)
 {
-    for (auto& textureChain: _diffusemaps)
-    {
-        textureChain.vertexes.clear();
-        textureChain.turbVertexes.clear();
-    }
-
     animateLight();
     _framecount++;
 	auto viewleaf = Mod_PointInLeaf(r_origin, cl.worldmodel);
@@ -261,10 +234,15 @@ void LevelRenderer::renderWorld(const entity_s* entity)
 
     walkBspTree(cl.worldmodel->nodes, entity);
 
+    renderTextureChains({});
+}
+
+void LevelRenderer::renderTextureChains(const glm::mat4& modelTrans)
+{
     glm::vec3 origin = qvec2glm(cl_visedicts[0]->origin);
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);
-    glm::mat4 model;
+    glm::mat4 model = modelTrans;
     glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
     _vao->bind();
@@ -299,6 +277,13 @@ void LevelRenderer::renderWorld(const entity_s* entity)
             glDrawElements(GL_TRIANGLES, textureChain.turbVertexes.size(), GL_UNSIGNED_INT, nullptr);
         }
     }   
+
+    // all done, clear texture chains for the next batch
+    for (auto& textureChain: _diffusemaps)
+    {
+        textureChain.vertexes.clear();
+        textureChain.turbVertexes.clear();
+    }
 }
 
 void LevelRenderer::animateLight()
