@@ -200,19 +200,7 @@ void LevelRenderer::renderSubmodel(const entity_s* entity)
     for (int i = 0; i < submodel->nummodelsurfaces; ++i)
     {
         const auto& surf = submodel->surfaces[submodel->firstmodelsurface + i];
-
-        auto texture = textureAnimation(surf.texinfo->texture, entity->frame);
-        auto textureChainIndex = texture->rendererData;
-        auto& textureChain = _diffusemaps[textureChainIndex];
-
-        GLuint baseidx = surf.rendererData;
-        for (int j = 0; j < surf.numedges - 2; ++j)
-        {
-            textureChain.vertexes.insert(
-                textureChain.vertexes.end(),
-                {baseidx, baseidx+1, baseidx+2});
-            baseidx += 3;
-        }
+        emitSurface(surf, entity->frame);
     }
 
     glm::vec3 pos = qvec2glm(origin);
@@ -231,26 +219,43 @@ void LevelRenderer::renderWorld(const entity_s* entity)
     _framecount++;
 	auto viewleaf = Mod_PointInLeaf(r_origin, cl.worldmodel);
     markLeaves(viewleaf);
-
     walkBspTree(cl.worldmodel->nodes, entity);
-
     renderTextureChains({});
 }
 
-void LevelRenderer::renderTextureChains(const glm::mat4& modelTrans)
+void LevelRenderer::emitSurface(const msurface_s& surf, int frame)
+{
+    GLuint baseidx = surf.rendererData;
+    auto texture = textureAnimation(surf.texinfo->texture, frame);
+    auto textureChainIndex = texture->rendererData;
+    auto& textureChain = _diffusemaps[textureChainIndex];
+
+    std::vector<GLuint>* vertexes;
+    if (surf.flags & SURF_DRAWTURB)
+        vertexes = &textureChain.turbVertexes;
+    else
+        vertexes = &textureChain.vertexes;
+
+    for (int j = 0; j < surf.numedges - 2; ++j)
+    {
+        vertexes->insert(vertexes->end(), {baseidx, baseidx+1, baseidx+2});
+        baseidx += 3;
+    }
+}
+
+void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
 {
     glm::vec3 origin = qvec2glm(cl_visedicts[0]->origin);
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);
-    glm::mat4 model = modelTrans;
-    glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
+    glm::mat4 viewMatrix = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
     _vao->bind();
 
     // bind the light map, and draw all normal walls
     TextureBinding lightmapBinding(*_lightmap, kTextureUnitLight);
 
-    DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
+    DefaultRenderPass::getInstance().setup(vid.width, vid.height, modelMatrix, viewMatrix,
         _lightStyles.data(), {0, 0, 0, 0});
 
     for (auto& textureChain: _diffusemaps)
@@ -265,7 +270,7 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelTrans)
     }
 
     // draw turb textures
-    DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
+    DefaultRenderPass::getInstance().setup(vid.width, vid.height, modelMatrix, viewMatrix,
         _lightStyles.data(), {0.5, 0.5, 0.5, 0}, kFlagTurbulence);
     for (auto& textureChain: _diffusemaps)
     {
@@ -412,23 +417,7 @@ void LevelRenderer::walkBspTree(mnode_s *node, const entity_s* entity)
             if(surf.visframe != _visframecount)
                 continue;
 
-            auto texture = textureAnimation(surf.texinfo->texture, entity->frame);
-            auto textureChainIndex = texture->rendererData;
-            auto& textureChain = _diffusemaps[textureChainIndex];
-
-            GLuint baseidx = surf.rendererData;
-
-            std::vector<GLuint>* vertexes;
-            if (surf.flags & SURF_DRAWTURB)
-                vertexes = &textureChain.turbVertexes;
-            else
-                vertexes = &textureChain.vertexes;
-
-            for (int j = 0; j < surf.numedges - 2; ++j)
-            {
-                vertexes->insert(vertexes->end(), {baseidx, baseidx+1, baseidx+2});
-                baseidx += 3;
-            }
+            emitSurface(surf, entity->frame);
         }
 
         // visit far

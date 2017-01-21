@@ -9,6 +9,7 @@ struct mnode_s;
 struct efrag_s;
 struct texture_s;
 struct entity_s;
+struct msurface_s;
 
 class LevelRenderer
 {
@@ -58,7 +59,8 @@ private:
     void storeEfrags (efrag_s **ppefrag);
     void walkBspTree(mnode_s *node, const entity_s* entity);
     int recursiveLightPoint (mnode_s* node, const float* start, const float* end);
-    void renderTextureChains(const glm::mat4& modelTrans);
+    void emitSurface(const msurface_s& surf, int frame);
+    void renderTextureChains(const glm::mat4& modelMatrix);
 
     void loadTexture(texture_s* texture);
     const texture_s* textureAnimation(const texture_s* base, int frame);
