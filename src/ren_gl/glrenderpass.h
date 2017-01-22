@@ -1,6 +1,7 @@
 #pragma once
 
 #include "glhelper.h"
+#include "glvertexattr.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -30,33 +31,22 @@ enum
     kFlagTurbulence = 2
 };
 
-struct VertexAttr
-{
-    GLvec3 vertex;
-    GLvec3 normal;
-    GLvec2 lightuv;
-    GLvec2 diffuseuv;
-    GLubyte styles[4];
-    GLuint vtxflags;
-};
-
-struct UniformBlock
-{
-    GLfloat model[4 * 4];
-    GLfloat view[4 * 4];
-    GLfloat projection[4 * 4];
-
-    GLfloat lightStyles[64];
-    GLfloat ambientLight[4];
-
-    GLuint flags;
-    GLfloat globalTime;
-    GLuint padding[2];
-};
-
 class DefaultRenderPass
 {
-  public:
+    struct UniformBlock
+    {
+        GLfloat model[4 * 4];
+        GLfloat view[4 * 4];
+        GLfloat projection[4 * 4];
+
+        GLfloat lightStyles[64];
+        GLfloat ambientLight[4];
+
+        GLuint flags;
+        GLfloat globalTime;
+        GLuint padding[2];
+    };
+public:
     static DefaultRenderPass &getInstance()
     {
         static DefaultRenderPass singleton;
@@ -90,12 +80,66 @@ class DefaultRenderPass
         _prog->assignTextureUnit("diffusemap", kTextureUnitDiffuse);
     }
 
-  private:
+private:
     DefaultRenderPass()
     {
         std::vector<Shader> shaders;
         shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs.glsl"));
         shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps.glsl"));
+        _prog = std::make_unique<RenderProgram>(shaders);
+        _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, kGlBufferDynamic);
+    }
+
+    std::unique_ptr<RenderProgram> _prog;
+    std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
+};
+
+enum
+{
+    kTextureUnitSky0,
+    kTextureUnitSky1,
+};
+
+class SkyRenderPass
+{
+    struct UniformBlock
+    {
+        GLfloat view[4 * 4];
+        GLfloat projection[4 * 4];
+        GLfloat globalTime;
+        GLuint padding[3];
+    };
+public:
+    static SkyRenderPass &getInstance()
+    {
+        static SkyRenderPass singleton;
+        return singleton;
+    }
+
+    void setup(float w, float h, const glm::mat4 &view)
+    {
+        auto projection = glm::perspective(glm::radians(60.0f), w / h, 1.0f, 5000.0f);
+        UniformBlock uniformBlock;
+        memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
+        memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
+        uniformBlock.globalTime = Sys_FloatTime();
+        _ufmBuf->update(&uniformBlock);
+    }
+
+    void use()
+    {
+        _prog->use();
+        _prog->setUniformBlock("UniformBlock", *_ufmBuf);
+        _prog->assignTextureUnit("skytexture0", kTextureUnitSky0);
+        _prog->assignTextureUnit("skytexture1", kTextureUnitSky1);
+    }
+
+private:
+    SkyRenderPass()
+    {
+        std::vector<Shader> shaders;
+        shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs_sky.glsl"));
+        shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps_sky.glsl"));
         _prog = std::make_unique<RenderProgram>(shaders);
         _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, kGlBufferDynamic);
     }

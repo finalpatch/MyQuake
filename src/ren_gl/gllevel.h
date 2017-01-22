@@ -41,14 +41,16 @@ private:
     {
         Texture texture;
         std::vector<GLuint> vertexes;
-        std::vector<GLuint> turbVertexes;
 
         TextureChain(GLuint width, GLuint height) :
             texture(GL_TEXTURE_2D, width, height, Texture::RGBA,
                 GL_REPEAT, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST)
         {}
     };
-    std::vector<TextureChain> _diffusemaps;
+    std::vector<TextureChain> _diffuseTextureChains;
+    std::vector<TextureChain> _turbulenceTextureChains;
+    std::vector<TextureChain> _skyTextureChains;
+    std::vector<Texture> _skyBackgroundTextures;
 
     // builders
     std::vector<VertexAttr> _vertexData;
@@ -63,5 +65,6 @@ private:
     void renderTextureChains(const glm::mat4& modelMatrix);
 
     void loadTexture(texture_s* texture);
+    void loadSkyTexture(texture_s* texture);
     const texture_s* textureAnimation(const texture_s* base, int frame);
 };

@@ -61,7 +61,6 @@ void R_RenderView (void)
     glClearBufferfv(GL_COLOR, 0, bgColor);
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
 
-    DefaultRenderPass::getInstance().use();
     drawLevel();
     drawEntities();
     drawWeapon();

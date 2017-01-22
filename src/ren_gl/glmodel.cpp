@@ -140,6 +140,8 @@ ModelRenderer::~ModelRenderer()
 
 void ModelRenderer::render(int frameId, float time, const float* origin, const float* angles, float ambientLight)
 {
+    DefaultRenderPass::getInstance().use();
+
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);
     glm::vec3 pos = qvec2glm(origin);

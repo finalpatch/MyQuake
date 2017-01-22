@@ -22,8 +22,11 @@ void LevelRenderer::loadBrushModel(const model_s* brushModel)
 {
     if (brushModel == cl.worldmodel)
     {
-        _diffusemaps.clear();
-        _diffusemaps.emplace_back(1, 1);
+        _diffuseTextureChains.clear();
+        _turbulenceTextureChains.clear();
+        _skyTextureChains.clear();
+        _skyBackgroundTextures.clear();
+        _diffuseTextureChains.emplace_back(1, 1);
         for (int i = 0; i < brushModel->numtextures; ++i)
             loadTexture(brushModel->textures[i]);
     }
@@ -228,13 +231,23 @@ void LevelRenderer::emitSurface(const msurface_s& surf, int frame)
     GLuint baseidx = surf.rendererData;
     auto texture = textureAnimation(surf.texinfo->texture, frame);
     auto textureChainIndex = texture->rendererData;
-    auto& textureChain = _diffusemaps[textureChainIndex];
 
     std::vector<GLuint>* vertexes;
     if (surf.flags & SURF_DRAWTURB)
-        vertexes = &textureChain.turbVertexes;
-    else
+    {
+        auto& textureChain = _turbulenceTextureChains[textureChainIndex];
         vertexes = &textureChain.vertexes;
+    }
+    else if (surf.flags & SURF_DRAWSKY)
+    {
+        auto& textureChain = _skyTextureChains[textureChainIndex];
+        vertexes = &textureChain.vertexes;
+    }
+    else
+    {
+        auto& textureChain = _diffuseTextureChains[textureChainIndex];
+        vertexes = &textureChain.vertexes;
+    }
 
     for (int j = 0; j < surf.numedges - 2; ++j)
     {
@@ -252,13 +265,28 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
 
     _vao->bind();
 
-    // bind the light map, and draw all normal walls
-    TextureBinding lightmapBinding(*_lightmap, kTextureUnitLight);
+    DefaultRenderPass::getInstance().use();
+    {
+        // bind the light map, and draw all normal walls
+        DefaultRenderPass::getInstance().setup(vid.width, vid.height, modelMatrix, viewMatrix,
+            _lightStyles.data(), {0, 0, 0, 0});
+        TextureBinding lightmapBinding(*_lightmap, kTextureUnitLight);
+        for (auto& textureChain: _diffuseTextureChains)
+        {
+            if (!textureChain.vertexes.empty())
+            {
+                // bind diffuse map
+                TextureBinding diffusemapBinding(textureChain.texture, kTextureUnitDiffuse);
+                _idxBuf->update(textureChain.vertexes);
+                glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
+            }
+        }
+    }
 
+    // draw turb textures
     DefaultRenderPass::getInstance().setup(vid.width, vid.height, modelMatrix, viewMatrix,
-        _lightStyles.data(), {0, 0, 0, 0});
-
-    for (auto& textureChain: _diffusemaps)
+        _lightStyles.data(), {0.5, 0.5, 0.5, 0}, kFlagTurbulence);
+    for (auto& textureChain: _turbulenceTextureChains)
     {
         if (!textureChain.vertexes.empty())
         {
@@ -267,28 +295,31 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
             _idxBuf->update(textureChain.vertexes);
             glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
         }
-    }
+    }        
 
-    // draw turb textures
-    DefaultRenderPass::getInstance().setup(vid.width, vid.height, modelMatrix, viewMatrix,
-        _lightStyles.data(), {0.5, 0.5, 0.5, 0}, kFlagTurbulence);
-    for (auto& textureChain: _diffusemaps)
+    // draw sky textures
+    SkyRenderPass::getInstance().use();
+    SkyRenderPass::getInstance().setup(vid.width, vid.height, viewMatrix);
+    for (unsigned i = 0; i < _skyTextureChains.size(); ++i)
     {
-        if (!textureChain.turbVertexes.empty())
+        auto& textureChain = _skyTextureChains[i];
+        if (!textureChain.vertexes.empty())
         {
             // bind diffuse map
-            TextureBinding diffusemapBinding(textureChain.texture, kTextureUnitDiffuse);
-            _idxBuf->update(textureChain.turbVertexes);
-            glDrawElements(GL_TRIANGLES, textureChain.turbVertexes.size(), GL_UNSIGNED_INT, nullptr);
+            TextureBinding skyBinding0(textureChain.texture, kTextureUnitSky0);
+            TextureBinding skyBinding1(_skyBackgroundTextures[i], kTextureUnitSky1);
+            _idxBuf->update(textureChain.vertexes);
+            glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
         }
-    }   
+    }
 
     // all done, clear texture chains for the next batch
-    for (auto& textureChain: _diffusemaps)
-    {
+    for (auto& textureChain: _diffuseTextureChains)
         textureChain.vertexes.clear();
-        textureChain.turbVertexes.clear();
-    }
+    for (auto& textureChain: _turbulenceTextureChains)
+        textureChain.vertexes.clear();
+    for (auto& textureChain: _skyTextureChains)
+        textureChain.vertexes.clear();
 }
 
 void LevelRenderer::animateLight()
@@ -548,21 +579,71 @@ float LevelRenderer::lightPoint (const float* p)
 void LevelRenderer::loadTexture(texture_s* texture)
 {
     Con_Printf("loading texture: %s\n", texture->name);
-    texture->rendererData = _diffusemaps.size();
+
+    std::vector<TextureChain>* textureChains;
+    if (texture->name[0] == '*')
+        textureChains = &_turbulenceTextureChains;
+    else if (texture->name[0] == 's' && texture->name[1] == 'k' && texture->name[2] == 'y')
+        return loadSkyTexture(texture);
+    else 
+        textureChains = &_diffuseTextureChains;
+
+    texture->rendererData = textureChains->size();
     unsigned w = texture->width;
     unsigned h = texture->height;
-    _diffusemaps.emplace_back(w, h);
+    textureChains->emplace_back(w, h);
     std::vector<uint32_t> rgbtex(w * h);
-    _diffusemaps.back().texture.setMaxMipLevel(MIPLEVELS - 1);
+    textureChains->back().texture.setMaxMipLevel(MIPLEVELS - 1);
     for (int mip = 0; mip < MIPLEVELS; ++mip)
     {
         const uint8_t* pixels = reinterpret_cast<const uint8_t*>(texture) + texture->offsets[mip];
         for(int i = 0; i < w * h; ++i)
             rgbtex[i] = vid_current_palette[pixels[i]];
         if (mip == 0)
-            _diffusemaps.back().texture.update(0, 0, w, h, rgbtex.data(), mip);
+            textureChains->back().texture.update(0, 0, w, h, rgbtex.data(), mip);
         else
-            _diffusemaps.back().texture.addMipmap(w, h, rgbtex.data(), mip);
+            textureChains->back().texture.addMipmap(w, h, rgbtex.data(), mip);
+        w >>= 1; h >>= 1;
+    }
+}
+
+void LevelRenderer::loadSkyTexture(texture_s* texture)
+{
+    texture->rendererData = _skyTextureChains.size();
+    unsigned w = texture->width / 2;
+    unsigned h = texture->height;
+    _skyTextureChains.emplace_back(w, h);
+    _skyTextureChains.back().texture.setMaxMipLevel(MIPLEVELS - 1);
+    std::vector<uint32_t> rgbtex(w * h);
+    _skyBackgroundTextures.emplace_back(GL_TEXTURE_2D, w, h, Texture::RGBA,
+        GL_REPEAT, GL_NEAREST_MIPMAP_NEAREST, GL_NEAREST);
+    _skyBackgroundTextures.back().setMaxMipLevel(MIPLEVELS - 1);
+    for (int mip = 0; mip < MIPLEVELS; ++mip)
+    {
+        const uint8_t* pixels = reinterpret_cast<const uint8_t*>(texture) + texture->offsets[mip];
+        // foreground
+        for (unsigned row = 0; row < h; ++row)
+        {
+            for (unsigned col = 0; col < w; ++col)
+            {
+                auto clridx = pixels[row * w * 2 + col];
+                rgbtex[row * w + col] = clridx == 0 ? 0 : vid_current_palette[pixels[row * w * 2 + col]];
+            }
+        }
+        if (mip == 0)
+            _skyTextureChains.back().texture.update(0, 0, w, h, rgbtex.data(), mip);
+        else
+            _skyTextureChains.back().texture.addMipmap(w, h, rgbtex.data(), mip);
+        // background
+        for (unsigned row = 0; row < h; ++row)
+        {
+            for (unsigned col = 0; col < w; ++col)
+                rgbtex[row * w + col] = vid_current_palette[pixels[row * w * 2 + w + col]];
+        }
+        if (mip == 0)
+            _skyBackgroundTextures.back().update(0, 0, w, h, rgbtex.data(), mip);
+        else
+            _skyBackgroundTextures.back().addMipmap(w, h, rgbtex.data(), mip);
         w >>= 1; h >>= 1;
     }
 }
