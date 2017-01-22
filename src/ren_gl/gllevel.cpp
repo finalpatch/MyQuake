@@ -299,7 +299,7 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
 
     // draw sky textures
     SkyRenderPass::getInstance().use();
-    SkyRenderPass::getInstance().setup(vid.width, vid.height, viewMatrix);
+    SkyRenderPass::getInstance().setup(vid.width, vid.height, viewMatrix, glm::vec4(eyePos, 1.0));
     for (unsigned i = 0; i < _skyTextureChains.size(); ++i)
     {
         auto& textureChain = _skyTextureChains[i];

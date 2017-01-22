@@ -4,6 +4,7 @@ layout(std140) uniform UniformBlock
 {
     mat4 view;
     mat4 projection;
+    vec4 origin;
     float globalTime;
 } uniforms;
 

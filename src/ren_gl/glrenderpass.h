@@ -106,6 +106,7 @@ class SkyRenderPass
     {
         GLfloat view[4 * 4];
         GLfloat projection[4 * 4];
+        GLfloat origin[4];
         GLfloat globalTime;
         GLuint padding[3];
     };
@@ -116,12 +117,13 @@ public:
         return singleton;
     }
 
-    void setup(float w, float h, const glm::mat4 &view)
+    void setup(float w, float h, const glm::mat4 &view, const glm::vec4& origin)
     {
         auto projection = glm::perspective(glm::radians(60.0f), w / h, 1.0f, 5000.0f);
         UniformBlock uniformBlock;
         memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
+        memcpy(uniformBlock.origin, glm::value_ptr(origin), sizeof(uniformBlock.origin));
         uniformBlock.globalTime = Sys_FloatTime();
         _ufmBuf->update(&uniformBlock);
     }
