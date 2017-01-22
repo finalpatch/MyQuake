@@ -19,7 +19,6 @@ qboolean r_cache_thrash = qfalse;
 /*
  TODO:
  * refactor texture loading
- * sky texture (SURF_DRAWSKY)
  * Fullbrights
  * Particals
  * Dynamic lighting
