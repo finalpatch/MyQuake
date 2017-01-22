@@ -67,7 +67,7 @@ public:
         memcpy(uniformBlock.ambientLight, glm::value_ptr(ambientLight), sizeof(uniformBlock.ambientLight));
 
         uniformBlock.flags = flags;
-        uniformBlock.globalTime = Sys_FloatTime();
+        uniformBlock.globalTime = fmod(Sys_FloatTime(), M_PI * 2);
 
         _ufmBuf->update(&uniformBlock);
     }
@@ -124,7 +124,7 @@ public:
         memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
         memcpy(uniformBlock.origin, glm::value_ptr(origin), sizeof(uniformBlock.origin));
-        uniformBlock.globalTime = Sys_FloatTime();
+        uniformBlock.globalTime = fmod(Sys_FloatTime(), 8.0);
         _ufmBuf->update(&uniformBlock);
     }
 
