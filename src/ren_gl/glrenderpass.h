@@ -8,6 +8,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 extern "C" double Sys_FloatTime (void);
+#define MAX_DLIGHTS 32
 
 enum
 {
@@ -42,6 +43,8 @@ class DefaultRenderPass
         GLfloat lightStyles[64];
         GLfloat ambientLight[4];
 
+        GLfloat dlights[MAX_DLIGHTS * 4]; // xyz, radius
+
         GLuint flags;
         GLfloat globalTime;
         GLuint padding[2];
@@ -53,23 +56,27 @@ public:
         return singleton;
     }
 
-    void setup(float w, float h, const glm::mat4 &model, const glm::mat4 &view,
-               const GLfloat *lightStyles, const glm::vec4 &ambientLight, GLuint flags = 0)
+    void updateDLights(const GLfloat* dlights)
+    {
+        memcpy(_uniformBlock.dlights, dlights, sizeof(_uniformBlock.dlights));
+    }
+
+    void setup(float w, float h, const glm::mat4 &model, const glm::mat4 &view, const GLfloat *lightStyles,
+        const glm::vec4 &ambientLight, GLuint flags = 0)
     {
         auto projection = glm::perspective(glm::radians(60.0f), w / h, 1.0f, 5000.0f);
-        UniformBlock uniformBlock;
 
-        memcpy(uniformBlock.model, glm::value_ptr(model), sizeof(uniformBlock.model));
-        memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
-        memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
+        memcpy(_uniformBlock.model, glm::value_ptr(model), sizeof(_uniformBlock.model));
+        memcpy(_uniformBlock.view, glm::value_ptr(view), sizeof(_uniformBlock.view));
+        memcpy(_uniformBlock.projection, glm::value_ptr(projection), sizeof(_uniformBlock.projection));
 
-        memcpy(uniformBlock.lightStyles, lightStyles, sizeof(uniformBlock.lightStyles));
-        memcpy(uniformBlock.ambientLight, glm::value_ptr(ambientLight), sizeof(uniformBlock.ambientLight));
+        memcpy(_uniformBlock.lightStyles, lightStyles, sizeof(_uniformBlock.lightStyles));
+        memcpy(_uniformBlock.ambientLight, glm::value_ptr(ambientLight), sizeof(_uniformBlock.ambientLight));
 
-        uniformBlock.flags = flags;
-        uniformBlock.globalTime = fmod(Sys_FloatTime(), M_PI * 2);
+        _uniformBlock.flags = flags;
+        _uniformBlock.globalTime = fmod(Sys_FloatTime(), M_PI * 2);
 
-        _ufmBuf->update(&uniformBlock);
+        _ufmBuf->update(&_uniformBlock);
     }
 
     void use()
@@ -92,6 +99,7 @@ private:
 
     std::unique_ptr<RenderProgram> _prog;
     std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
+    UniformBlock _uniformBlock;
 };
 
 enum

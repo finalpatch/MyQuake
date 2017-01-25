@@ -1,7 +1,7 @@
 #version 330 core
 
 #define MAX_LIGHTSTYLES 64
-
+#define MAX_DLIGHTS 32
 #define FLAG_TURBULENCE 2u
 
 layout(std140) uniform UniformBlock
@@ -12,6 +12,8 @@ layout(std140) uniform UniformBlock
 
     vec4 lightStyles[MAX_LIGHTSTYLES / 4];
     vec4 ambientLight;
+
+    vec4 dlights[MAX_DLIGHTS];
 
     uint flags;
     float globalTime;
