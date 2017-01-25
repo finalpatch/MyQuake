@@ -14,7 +14,13 @@ refdef_t r_refdef;
 vec3_t	r_origin, vpn, vright, vup;
 texture_s* r_notexture_mip = nullptr;
 qboolean r_cache_thrash = qfalse;
+
+void R_InitParticles ();
+void R_ClearParticles();
+void R_DrawParticles ();
 }
+
+extern uint32_t vid_current_palette[256];
 
 /*
  TODO:
@@ -42,6 +48,10 @@ void R_Init (void)
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CW);
     glCullFace(GL_BACK);
+
+    glEnable(GL_PROGRAM_POINT_SIZE);
+
+    R_InitParticles();
 }
 
 void R_InitTextures (void)
@@ -63,6 +73,8 @@ void R_RenderView (void)
     drawLevel();
     drawEntities();
     drawWeapon();
+
+    R_DrawParticles();
 }
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
@@ -99,65 +111,54 @@ void R_NewMap (void)
     }
 
     levelRenderer->build();
+    R_ClearParticles();
 }
 
-void R_ParseParticleEffect (void)
+struct ParticleVertex
 {
-	vec3_t		org, dir;
-	int			i, count, msgcount, color;
+    GLfloat position[3];
+    GLuint  color;
+};
+std::vector<ParticleVertex> activeParticles;
+std::unique_ptr<VertexArray> particleVao;
 
-	for (i=0 ; i<3 ; i++)
-		org[i] = MSG_ReadCoord ();
-	for (i=0 ; i<3 ; i++)
-		dir[i] = MSG_ReadChar () * (1.0/16);
-	msgcount = MSG_ReadByte ();
-	color = MSG_ReadByte ();
+void D_StartParticles (void)
+{
+    activeParticles.clear();
 
-    if (msgcount == 255)
-        count = 1024;
-    else
-        count = msgcount;
-
-	R_RunParticleEffect (org, dir, color, count);
+    if (!particleVao)
+    {
+        particleVao = std::make_unique<VertexArray>();
+        particleVao->enableAttrib(0);
+        particleVao->format(0, 3, GL_FLOAT, GL_FALSE);
+        particleVao->enableAttrib(1);
+        particleVao->format(1, 4, GL_UNSIGNED_BYTE, GL_TRUE);
+    }
 }
 
-void R_RunParticleEffect (vec3_t org, vec3_t dir, int color, int count)
+void D_DrawParticle (particle_t *pparticle)
 {
-
+    activeParticles.emplace_back(ParticleVertex{{
+            pparticle->org[0], pparticle->org[2], -pparticle->org[1]
+        },
+        vid_current_palette[uint8_t(pparticle->color)]});
 }
 
-void R_RocketTrail (vec3_t start, vec3_t end, int type)
+void D_EndParticles (void)
 {
+    if (activeParticles.empty())
+        return;
+    GLBuffer<ParticleVertex> particleBuffer(activeParticles.data(), activeParticles.size());
+    particleVao->bind();
+    particleVao->vertexBuffer(0, particleBuffer, 0);
+    particleVao->vertexBuffer(1, particleBuffer, offsetof(ParticleVertex, color));
 
-}
-
-void R_EntityParticles (entity_t *ent)
-{
-
-}
-void R_BlobExplosion (vec3_t org)
-{
-
-}
-
-void R_ParticleExplosion (vec3_t org)
-{
-
-}
-
-void R_ParticleExplosion2 (vec3_t org, int colorStart, int colorLength)
-{
-
-}
-
-void R_LavaSplash (vec3_t org)
-{
-
-}
-
-void R_TeleportSplash (vec3_t org)
-{
-
+    glm::vec3 eyePos = qvec2glm(r_origin);
+    glm::vec3 eyeDirection = qvec2glm(vpn);
+    glm::mat4 viewMatrix = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
+    ParticleRenderPass::getInstance().use();
+    ParticleRenderPass::getInstance().setup(vid.width, vid.height, viewMatrix, glm::vec4(eyePos, 1.0));
+    glDrawArrays(GL_POINTS, 0, particleBuffer.size());
 }
 
 void R_PushDlights (void)

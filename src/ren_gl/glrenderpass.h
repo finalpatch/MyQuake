@@ -149,3 +149,48 @@ private:
     std::unique_ptr<RenderProgram> _prog;
     std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
 };
+
+class ParticleRenderPass
+{
+    struct UniformBlock
+    {
+        GLfloat view[4 * 4];
+        GLfloat projection[4 * 4];
+        GLfloat origin[4];
+    };
+public:
+    static ParticleRenderPass &getInstance()
+    {
+        static ParticleRenderPass singleton;
+        return singleton;
+    }
+
+    void setup(float w, float h, const glm::mat4 &view, const glm::vec4& origin)
+    {
+        auto projection = glm::perspective(glm::radians(60.0f), w / h, 1.0f, 5000.0f);
+        UniformBlock uniformBlock;
+        memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
+        memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
+        memcpy(uniformBlock.origin, glm::value_ptr(origin), sizeof(uniformBlock.origin));
+        _ufmBuf->update(&uniformBlock);
+    }
+
+    void use()
+    {
+        _prog->use();
+        _prog->setUniformBlock("UniformBlock", *_ufmBuf);
+    }
+
+private:
+    ParticleRenderPass()
+    {
+        std::vector<Shader> shaders;
+        shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs_particle.glsl"));
+        shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps_particle.glsl"));
+        _prog = std::make_unique<RenderProgram>(shaders);
+        _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, kGlBufferDynamic);
+    }
+
+    std::unique_ptr<RenderProgram> _prog;
+    std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
+};

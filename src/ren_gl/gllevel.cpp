@@ -258,7 +258,6 @@ void LevelRenderer::emitSurface(const msurface_s& surf, int frame)
 
 void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
 {
-    glm::vec3 origin = qvec2glm(cl_visedicts[0]->origin);
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);
     glm::mat4 viewMatrix = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));

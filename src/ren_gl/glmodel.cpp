@@ -8,7 +8,7 @@ extern "C"
 #include "quakedef.h"
 }
 
-static float r_avertexnormals[][3] = {
+float r_avertexnormals[][3] = {
     #include "anorms.h"
 };
 
