@@ -163,7 +163,15 @@ void D_EndParticles (void)
 
 void R_PushDlights (void)
 {
-
+    std::vector<GLfloat> dlightBuf(MAX_DLIGHTS * 4);
+    for (int i = 0 ; i < MAX_DLIGHTS; ++i)
+    {
+        dlightBuf[i * 4 + 0] = cl_dlights[i].origin[0];
+        dlightBuf[i * 4 + 1] = cl_dlights[i].origin[2];
+        dlightBuf[i * 4 + 2] = -cl_dlights[i].origin[1];
+        dlightBuf[i * 4 + 3] = cl_dlights[i].radius;
+    }
+    DefaultRenderPass::getInstance().updateDLights(dlightBuf.data());
 }
 
 void D_FlushCaches (void)
