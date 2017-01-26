@@ -44,10 +44,11 @@ class DefaultRenderPass
         GLfloat ambientLight[4];
 
         GLfloat dlights[MAX_DLIGHTS * 4]; // xyz, radius
+        GLuint ndlights;
 
         GLuint flags;
         GLfloat globalTime;
-        GLuint padding[2];
+        GLuint padding[1];
     };
 public:
     static DefaultRenderPass &getInstance()
@@ -56,9 +57,10 @@ public:
         return singleton;
     }
 
-    void updateDLights(const GLfloat* dlights)
+    void updateDLights(const GLfloat* dlights, GLuint ndlights)
     {
-        memcpy(_uniformBlock.dlights, dlights, sizeof(_uniformBlock.dlights));
+        memcpy(_uniformBlock.dlights, dlights, sizeof(GLfloat)*ndlights*4);
+        _uniformBlock.ndlights = ndlights;
     }
 
     void setup(float w, float h, const glm::mat4 &model, const glm::mat4 &view, const GLfloat *lightStyles,

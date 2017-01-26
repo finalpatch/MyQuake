@@ -15,6 +15,7 @@ layout(std140) uniform UniformBlock
     vec4 ambientLight;
 
     vec4 dlights[MAX_DLIGHTS];
+    uint ndlights;
 
     uint flags;
     float globalTime;
@@ -33,6 +34,8 @@ out VS_OUT
     vec2 lightTexCoord;
     vec2 diffuseTexCoord;
     vec4 lightScales;
+    vec3 worldPos;
+    vec3 normal;
 } vs_out;
 
 void main(void)
@@ -61,4 +64,6 @@ void main(void)
         uniforms.lightStyles[style_h.g][style_l.g],
         uniforms.lightStyles[style_h.b][style_l.b],
         uniforms.lightStyles[style_h.a][style_l.a]);
+    vs_out.worldPos = position.xyz;
+    vs_out.normal = normal;
 }

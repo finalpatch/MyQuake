@@ -14,6 +14,7 @@ layout(std140) uniform UniformBlock
     vec4 ambientLight;
 
     vec4 dlights[MAX_DLIGHTS];
+    uint ndlights;
 
     uint flags;
     float globalTime;
@@ -30,12 +31,28 @@ in VS_OUT
     vec2 lightTexCoord;
     vec2 diffuseTexCoord;
     vec4 lightScales;
+    vec3 worldPos;
+    vec3 normal;
 } fs_in;
 
 void main(void)
 {
     vec4 lightValues = texture(lightmap, fs_in.lightTexCoord);
     vec4 l = vec4(vec3(dot(lightValues, fs_in.lightScales)) + uniforms.ambientLight.rgb, 1.0);
+
+    for (uint i = 0u; i < uniforms.ndlights; ++i)
+    {
+        vec3 lightPos = uniforms.dlights[i].xyz;
+        float radius = uniforms.dlights[i].w;
+        vec3 lightRay = lightPos - fs_in.worldPos;
+        float dist = length(lightRay);
+        //if (dist < radius)
+        {
+            float intensity = dot(normalize(lightRay), fs_in.normal);
+            intensity = intensity * 10000 / (dist * dist);
+            l += clamp(intensity, 0.0, 1.0);
+        }
+    }
 
     vec2 uv = fs_in.diffuseTexCoord;
     if ((uniforms.flags & FLAG_TURBULENCE) != 0u)
