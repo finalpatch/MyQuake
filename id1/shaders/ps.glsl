@@ -46,7 +46,6 @@ void main(void)
         float radius = uniforms.dlights[i].w;
         vec3 lightRay = lightPos - fs_in.worldPos;
         float dist = length(lightRay);
-        //if (dist < radius)
         {
             float intensity = dot(normalize(lightRay), fs_in.normal);
             intensity = intensity * 10000 / (dist * dist);

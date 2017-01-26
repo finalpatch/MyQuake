@@ -245,9 +245,11 @@ void drawWeapon()
     auto model = entity->model;
     if (!model)
         return;
-    auto& renderer = modelRenderers[model->rendererData];
+    auto& renderer = modelRenderers[model->rendererData];    
     // allways give some light on gun
     float ambientLight = std::max(0.1f, levelRenderer->lightPoint(entity->origin));
+    if (cl_entities[cl.viewentity].effects & EF_MUZZLEFLASH)
+        ambientLight += 0.5;
     renderer->render(entity->frame, cl.time + entity->syncbase,
         entity->origin, entity->angles, ambientLight);
 }
