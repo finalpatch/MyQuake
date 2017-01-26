@@ -48,7 +48,7 @@ void main(void)
         float dist = length(lightRay);
         {
             float intensity = dot(normalize(lightRay), fs_in.normal);
-            intensity = intensity * 10000 / (dist * dist);
+            intensity = intensity * (radius / 432.0) * 10000 / (dist * dist);
             l += clamp(intensity, 0.0, 1.0);
         }
     }
