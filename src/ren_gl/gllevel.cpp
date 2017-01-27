@@ -333,7 +333,7 @@ void LevelRenderer::animateLight()
 		}
 		int k = i % cl_lightstyle[j].length;
 		k = cl_lightstyle[j].map[k] - 'a';
-		_lightStyles[j] = (float)k / ('z' - 'a') * 2.0f; // up to double bright
+		_lightStyles[j] = (float)k / ('m' - 'a'); // up to double bright
 	}
 }
 

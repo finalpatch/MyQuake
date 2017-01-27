@@ -54,6 +54,9 @@ void main(void)
 
     vec2 uv = fs_in.diffuseTexCoord;
     if ((uniforms.flags & FLAG_TURBULENCE) != 0u)
+    {
         uv += vec2(sin(uniforms.globalTime + uv.y*2.0), cos(uniforms.globalTime + uv.x*2.0)) / 8.0;
+        l *= 0.5;
+    }
     color = texture(diffusemap, uv) * l * 2.0;
 }
