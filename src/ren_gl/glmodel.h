@@ -90,4 +90,5 @@ private:
     std::vector<std::unique_ptr<Skin>> _skins;
     std::vector<std::unique_ptr<ModelFrame>> _frames;
     std::string _name;
+    bool _fullBrightObject;
 };

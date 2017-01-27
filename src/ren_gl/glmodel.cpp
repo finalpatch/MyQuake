@@ -2,6 +2,7 @@
 #include "glrenderpass.h"
 
 #include <algorithm>
+#include <set>
 
 extern "C"
 {
@@ -39,8 +40,20 @@ static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices
     }
 }
 
+static const std::set<std::string> fullBrightObjectNames = {
+    "progs/bolt.mdl",
+    "progs/bolt2.mdl",
+    "progs/bolt3.mdl",
+    "progs/lavaball.mdl",
+    "progs/missile.mdl",
+    "progs/flame.mdl",
+    "progs/flame2.mdl",
+};
+
 ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->name)
 {
+    _fullBrightObject = fullBrightObjectNames.count(_name);
+
     auto modelHeader = (const aliashdr_t*)Mod_Extradata(const_cast<model_s*>(entityModel));
 	auto modelDesc = (const mdl_t*)((byte *)modelHeader + modelHeader->model);
     auto pstverts = (const stvert_t*)((byte *)modelHeader + modelHeader->stverts);
@@ -140,6 +153,9 @@ ModelRenderer::~ModelRenderer()
 
 void ModelRenderer::render(int frameId, float time, const float* origin, const float* angles, float ambientLight)
 {
+    if (_fullBrightObject)
+        ambientLight = 0.5;
+
     DefaultRenderPass::getInstance().use();
 
     glm::vec3 eyePos = qvec2glm(r_origin);
