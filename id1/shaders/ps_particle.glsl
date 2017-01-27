@@ -9,5 +9,5 @@ in VS_OUT
 
 void main()
 {
-    color = fs_in.color.abgr;
+    color = fs_in.color.abgr * 2.0;
 }

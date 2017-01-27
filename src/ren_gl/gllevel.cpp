@@ -284,7 +284,7 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
 
     // draw turb textures
     DefaultRenderPass::getInstance().setup(vid.width, vid.height, modelMatrix, viewMatrix,
-        _lightStyles.data(), {0.5, 0.5, 0.5, 0}, kFlagTurbulence);
+        _lightStyles.data(), {1.0, 1.0, 1.0, 0}, kFlagTurbulence);
     for (auto& textureChain: _turbulenceTextureChains)
     {
         if (!textureChain.vertexes.empty())

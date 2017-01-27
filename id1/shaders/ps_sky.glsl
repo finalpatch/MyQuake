@@ -29,5 +29,5 @@ void main(void)
     vec2 offset = vec2(uniforms.globalTime, -uniforms.globalTime);
     vec4 fg = texture(skytexture0, uv + offset* SCROLL_FACTOR);
     vec4 bg = texture(skytexture1, uv + offset * SCROLL_FACTOR * 0.5);
-    color = vec4(mix(bg.rgb, fg.rgb, fg.a), 1.0);
+    color = vec4(mix(bg.rgb, fg.rgb, fg.a), 1.0) * 2.0;
 }

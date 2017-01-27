@@ -225,12 +225,15 @@ void drawEntities()
             {
                 auto model = currentEntity->model;
                 auto& modelRenderer = modelRenderers[model->rendererData];
+                float ambientLight = levelRenderer->lightPoint(currentEntity->origin);
+                if (currentEntity->effects & EF_MUZZLEFLASH)
+                    ambientLight += 0.5;
                 modelRenderer->render(
                     currentEntity->frame,
                     cl.time + currentEntity->syncbase,
                     currentEntity->origin,
                     currentEntity->angles,
-                    levelRenderer->lightPoint(currentEntity->origin));
+                    ambientLight);
             }
             break;
         default:
