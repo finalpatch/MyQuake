@@ -64,6 +64,6 @@ void main(void)
         uniforms.lightStyles[style_h.g][style_l.g],
         uniforms.lightStyles[style_h.b][style_l.b],
         uniforms.lightStyles[style_h.a][style_l.a]);
-    vs_out.worldPos = position.xyz;
+    vs_out.worldPos = (uniforms.model * position).xyz;
     vs_out.normal = normal;
 }
