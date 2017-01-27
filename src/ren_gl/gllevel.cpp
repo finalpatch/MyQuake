@@ -577,6 +577,9 @@ float LevelRenderer::lightPoint (const float* p)
 
 void LevelRenderer::loadTexture(texture_s* texture)
 {
+    if (!texture)
+        return;
+
     Con_Printf("loading texture: %s\n", texture->name);
 
     std::vector<TextureChain>* textureChains;
