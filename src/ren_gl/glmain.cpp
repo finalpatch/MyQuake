@@ -26,8 +26,6 @@ extern uint32_t vid_current_palette[256];
  TODO:
  * refactor texture loading
  * Fullbrights
- * Particals
- * Dynamic lighting
  * Post processing
  */
 
