@@ -14,7 +14,8 @@ float r_avertexnormals[][3] = {
 };
 
 extern uint32_t vid_current_palette[256];
-extern glm::mat4 r_projection;
+extern glm::mat4 r_projectionMatrix;
+extern glm::mat4 r_viewMatrix;
 
 static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices, const stvert_t* stverts,
     std::vector<VertexAttr>& vertexData)
@@ -152,24 +153,32 @@ ModelRenderer::~ModelRenderer()
 {
 }
 
-void ModelRenderer::render(int frameId, float time, const float* origin, const float* angles, float ambientLight)
+void ModelRenderer::render(const entity_s* entity, float ambientLight)
 {
+    auto frameId = entity->frame;
+    auto time = entity->syncbase + cl.time;
+    auto origin = entity->origin;
+    auto angles = entity->angles;
+
     if (_fullBrightObject)
         ambientLight = 0.5;
 
     DefaultRenderPass::getInstance().use();
 
-    glm::vec3 eyePos = qvec2glm(r_origin);
-    glm::vec3 eyeDirection = qvec2glm(vpn);
     glm::vec3 pos = qvec2glm(origin);
-
     glm::mat4 model =
         glm::translate(glm::mat4(), pos)
         * glm::rotate(glm::mat4(), glm::radians(angles[YAW]),   {0, 1, 0})
         * glm::rotate(glm::mat4(), glm::radians(angles[PITCH]), {0, 0, 1})
         * glm::rotate(glm::mat4(), glm::radians(angles[ROLL]),  {1, 0, 0})
         ;
-    glm::mat4 view = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
+
+    // clip agains view frustum
+    auto mvp = r_projectionMatrix * r_viewMatrix * model;
+    auto planes = extractViewPlanes(mvp);
+    auto box = qbox2glm(entity->model->mins, entity->model->maxs);
+    if (!intersectFrustumAABB(planes, box))
+        return;
 
     const static GLfloat nullLightStyles[MAX_LIGHTSTYLES] = {};
 
@@ -178,12 +187,12 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
 
     TextureBinding diffusemapBinding(_skins[0]->getTexture(time), DefaultRenderPass::kTextureUnitDiffuse);
     // front side
-    DefaultRenderPass::getInstance().setup(r_projection, model, view,
+    DefaultRenderPass::getInstance().setup(r_projectionMatrix, model, r_viewMatrix,
         nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, 0);
     _vao->indexBuffer(*_frontSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _frontSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
     // back side
-    DefaultRenderPass::getInstance().setup(r_projection, model, view,
+    DefaultRenderPass::getInstance().setup(r_projectionMatrix, model, r_viewMatrix,
         nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, DefaultRenderPass::kFlagBackSide);
     _vao->indexBuffer(*_backSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _backSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);

@@ -4,6 +4,7 @@
 #include "glrenderpass.h"
 
 struct model_s;
+struct entity_s;
 
 struct VertexRange
 {
@@ -80,7 +81,7 @@ public:
     explicit ModelRenderer(const model_s* entityModel);
     virtual ~ModelRenderer();
 
-    void render(int frameId, float time, const float* origin, const float* angles, float ambientLight);
+    void render(const entity_s* entity, float ambientLight);
 
 private:
     std::unique_ptr<VertexArray> _vao;

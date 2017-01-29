@@ -11,7 +11,8 @@ const static GLuint kLightmapAtlasSize = 1024;
 const static GLuint kLightmapAtlasPadding = 1;
 
 extern uint32_t vid_current_palette[256];
-extern glm::mat4 r_projection;
+extern glm::mat4 r_projectionMatrix;
+extern glm::mat4 r_viewMatrix;
 
 LevelRenderer::LevelRenderer() :
     _lightStyles(MAX_LIGHTSTYLES),
@@ -214,6 +215,13 @@ void LevelRenderer::renderSubmodel(const entity_s* entity)
         * glm::rotate(glm::mat4(), glm::radians(angles[0]), {1, 0, 0})
         * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1});
 
+    // clip agains view frustum
+    auto mvp = r_projectionMatrix * r_viewMatrix * model;
+    auto planes = extractViewPlanes(mvp);
+    auto box = qbox2glm(entity->model->mins, entity->model->maxs);
+    if (!intersectFrustumAABB(planes, box))
+        return;
+
     renderTextureChains(model);
 }
 
@@ -259,16 +267,12 @@ void LevelRenderer::emitSurface(const msurface_s& surf, int frame)
 
 void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
 {
-    glm::vec3 eyePos = qvec2glm(r_origin);
-    glm::vec3 eyeDirection = qvec2glm(vpn);
-    glm::mat4 viewMatrix = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
-
     _vao->bind();
 
     DefaultRenderPass::getInstance().use();
     {
         // bind the light map, and draw all normal walls
-        DefaultRenderPass::getInstance().setup(r_projection, modelMatrix, viewMatrix,
+        DefaultRenderPass::getInstance().setup(r_projectionMatrix, modelMatrix, r_viewMatrix,
             _lightStyles.data(), {0, 0, 0, 0});
         TextureBinding lightmapBinding(*_lightmap, DefaultRenderPass::kTextureUnitLight);
         for (auto& textureChain: _diffuseTextureChains)
@@ -284,7 +288,7 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
     }
 
     // draw turb textures
-    DefaultRenderPass::getInstance().setup(r_projection, modelMatrix, viewMatrix,
+    DefaultRenderPass::getInstance().setup(r_projectionMatrix, modelMatrix, r_viewMatrix,
         _lightStyles.data(), {1.0, 1.0, 1.0, 0}, DefaultRenderPass::kFlagTurbulence);
     for (auto& textureChain: _turbulenceTextureChains)
     {
@@ -298,8 +302,9 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
     }        
 
     // draw sky textures
+    glm::vec3 eyePos = qvec2glm(r_origin);
     SkyRenderPass::getInstance().use();
-    SkyRenderPass::getInstance().setup(r_projection, viewMatrix, glm::vec4(eyePos, 1.0));
+    SkyRenderPass::getInstance().setup(r_projectionMatrix, r_viewMatrix, glm::vec4(eyePos, 1.0));
     for (unsigned i = 0; i < _skyTextureChains.size(); ++i)
     {
         auto& textureChain = _skyTextureChains[i];
@@ -408,12 +413,18 @@ void LevelRenderer::walkBspTree(mnode_s *node, const entity_s* entity)
 	if (node->visframe != _visframecount)
 		return;
 
+    // clip agains view frustum
+    auto mvp = r_projectionMatrix * r_viewMatrix;
+    auto planes = extractViewPlanes(mvp);
+    auto box = qbox2glm(node->minmaxs, node->minmaxs+3);
+    if (!intersectFrustumAABB(planes, box))
+        return;
+
     if (node->contents < 0) // leaf node
     {
 		auto pleaf = (mleaf_t *)node;
         for (int i = 0; i < pleaf->nummarksurfaces; ++i)
             pleaf->firstmarksurface[i]->visframe = _visframecount;
-
         if (pleaf->efrags)
             storeEfrags(&pleaf->efrags);
     }

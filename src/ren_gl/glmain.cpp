@@ -24,7 +24,6 @@ extern uint32_t vid_current_palette[256];
 
 /*
  TODO:
- * culling
  * refactor texture loading
  * Fullbrights
  * Post processing
@@ -35,7 +34,8 @@ std::unique_ptr<LevelRenderer> levelRenderer;
 std::vector<std::unique_ptr<ModelRenderer>> modelRenderers;
 
 extern cvar_t	scr_fov;
-glm::mat4 r_projection;
+glm::mat4 r_projectionMatrix;
+glm::mat4 r_viewMatrix;
 
 void drawLevel();
 void drawEntities();
@@ -64,15 +64,19 @@ void R_InitTextures (void)
 
 void R_RenderView (void)
 {
-    r_projection = glm::perspective(
+    // sound output uses these
+   	VectorCopy(r_refdef.vieworg, r_origin);
+	AngleVectors (r_refdef.viewangles, vpn, vright, vup);
+
+    r_projectionMatrix = glm::perspective(
         glm::radians(scr_fov.value * 0.75f), // y fov
         (float)vid.width / vid.height,       // aspect ratio
         1.0f,                                // near
         5000.0f);                            // far
 
-    // sound output uses these
-   	VectorCopy(r_refdef.vieworg, r_origin);
-	AngleVectors (r_refdef.viewangles, vpn, vright, vup);
+    glm::vec3 eyePos = qvec2glm(r_origin);
+    glm::vec3 eyeDirection = qvec2glm(vpn);
+    r_viewMatrix = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
     static GLfloat bgColor[] = {0.27, 0.53, 0.71, 1.0};
     glViewport(0, 0, vid.width, vid.height);
@@ -162,10 +166,8 @@ void D_EndParticles (void)
     particleVao->vertexBuffer(ParticleRenderPass::kVertexInputColor, particleBuffer, offsetof(ParticleVertex, color));
 
     glm::vec3 eyePos = qvec2glm(r_origin);
-    glm::vec3 eyeDirection = qvec2glm(vpn);
-    glm::mat4 viewMatrix = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
     ParticleRenderPass::getInstance().use();
-    ParticleRenderPass::getInstance().setup(r_projection, viewMatrix, glm::vec4(eyePos, 1.0));
+    ParticleRenderPass::getInstance().setup(r_projectionMatrix, r_viewMatrix, glm::vec4(eyePos, 1.0));
     glDrawArrays(GL_POINTS, 0, particleBuffer.size());
 }
 
@@ -234,12 +236,7 @@ void drawEntities()
                 auto model = currentEntity->model;
                 auto& modelRenderer = modelRenderers[model->rendererData];
                 float ambientLight = levelRenderer->lightPoint(currentEntity->origin);
-                modelRenderer->render(
-                    currentEntity->frame,
-                    cl.time + currentEntity->syncbase,
-                    currentEntity->origin,
-                    currentEntity->angles,
-                    ambientLight);
+                modelRenderer->render(currentEntity, ambientLight);
             }
             break;
         default:
@@ -254,9 +251,8 @@ void drawWeapon()
     auto model = entity->model;
     if (!model)
         return;
-    auto& renderer = modelRenderers[model->rendererData];    
+    auto& renderer = modelRenderers[model->rendererData];
     // allways give some light on gun
     float ambientLight = std::max(0.1f, levelRenderer->lightPoint(entity->origin));
-    renderer->render(entity->frame, cl.time + entity->syncbase,
-        entity->origin, entity->angles, ambientLight);
+    renderer->render(entity, ambientLight);
 }
