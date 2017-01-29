@@ -202,12 +202,6 @@ void LevelRenderer::renderSubmodel(const entity_s* entity)
     const float* origin = entity->origin;
     const float* angles = entity->angles;
 
-    for (int i = 0; i < submodel->nummodelsurfaces; ++i)
-    {
-        const auto& surf = submodel->surfaces[submodel->firstmodelsurface + i];
-        emitSurface(surf, entity->frame);
-    }
-
     glm::vec3 pos = qvec2glm(origin);
     glm::mat4 model =
         glm::translate(glm::mat4(), pos)
@@ -222,6 +216,11 @@ void LevelRenderer::renderSubmodel(const entity_s* entity)
     if (!intersectFrustumAABB(planes, box))
         return;
 
+    for (int i = 0; i < submodel->nummodelsurfaces; ++i)
+    {
+        const auto& surf = submodel->surfaces[submodel->firstmodelsurface + i];
+        emitSurface(surf, entity->frame);
+    }
     renderTextureChains(model);
 }
 
