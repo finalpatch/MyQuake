@@ -24,6 +24,7 @@ extern uint32_t vid_current_palette[256];
 
 /*
  TODO:
+ * culling
  * refactor texture loading
  * Fullbrights
  * Post processing
