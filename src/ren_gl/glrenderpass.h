@@ -10,28 +10,6 @@
 extern "C" double Sys_FloatTime (void);
 #define MAX_DLIGHTS 32
 
-enum
-{
-    kVertexInputVertex,
-    kVertexInputNormal,
-    kVertexInputLightTexCoord,
-    kVertexInputDiffuseTexCoord,
-    kVertexInputLightStyle,
-    kVertexInputFlags
-};
-
-enum
-{
-    kTextureUnitLight,
-    kTextureUnitDiffuse,
-};
-
-enum
-{
-    kFlagBackSide = 1,
-    kFlagTurbulence = 2
-};
-
 class DefaultRenderPass
 {
     struct UniformBlock
@@ -51,6 +29,25 @@ class DefaultRenderPass
         GLuint padding[1];
     };
 public:
+    enum
+    {
+        kVertexInputVertex,
+        kVertexInputNormal,
+        kVertexInputLightTexCoord,
+        kVertexInputDiffuseTexCoord,
+        kVertexInputLightStyle,
+        kVertexInputFlags
+    };
+    enum
+    {
+        kTextureUnitLight,
+        kTextureUnitDiffuse,
+    };
+    enum
+    {
+        kFlagBackSide = 1,
+        kFlagTurbulence = 2
+    };
     static DefaultRenderPass &getInstance()
     {
         static DefaultRenderPass singleton;
@@ -84,9 +81,7 @@ public:
     void use()
     {
         _prog->use();
-        _prog->setUniformBlock("UniformBlock", *_ufmBuf);
-        _prog->assignTextureUnit("lightmap0", kTextureUnitLight);
-        _prog->assignTextureUnit("diffusemap", kTextureUnitDiffuse);
+        _prog->setUniformBlock(_uniformBlockIndex, *_ufmBuf);
     }
 
 private:
@@ -96,18 +91,17 @@ private:
         shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs.glsl"));
         shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps.glsl"));
         _prog = std::make_unique<RenderProgram>(shaders);
+        _prog->use();
         _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, kGlBufferDynamic);
+        _uniformBlockIndex = _prog->getUniformBlockIndex("UniformBlock");
+        _prog->assignTextureUnit("lightmap0", kTextureUnitLight);
+        _prog->assignTextureUnit("diffusemap", kTextureUnitDiffuse);
     }
 
     std::unique_ptr<RenderProgram> _prog;
     std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
     UniformBlock _uniformBlock;
-};
-
-enum
-{
-    kTextureUnitSky0,
-    kTextureUnitSky1,
+    GLuint _uniformBlockIndex;
 };
 
 class SkyRenderPass
@@ -121,6 +115,12 @@ class SkyRenderPass
         GLuint padding[3];
     };
 public:
+    // Sky render pass share the same vertex layout as DefaultRenderPass
+    enum
+    {
+        kTextureUnitSky0,
+        kTextureUnitSky1,
+    };
     static SkyRenderPass &getInstance()
     {
         static SkyRenderPass singleton;
@@ -136,14 +136,13 @@ public:
         memcpy(uniformBlock.origin, glm::value_ptr(origin), sizeof(uniformBlock.origin));
         uniformBlock.globalTime = fmod(Sys_FloatTime(), 8.0);
         _ufmBuf->update(&uniformBlock);
+        _uniformBlockIndex = _prog->getUniformBlockIndex("UniformBlock");
     }
 
     void use()
     {
         _prog->use();
-        _prog->setUniformBlock("UniformBlock", *_ufmBuf);
-        _prog->assignTextureUnit("skytexture0", kTextureUnitSky0);
-        _prog->assignTextureUnit("skytexture1", kTextureUnitSky1);
+        _prog->setUniformBlock(_uniformBlockIndex, *_ufmBuf);
     }
 
 private:
@@ -153,11 +152,15 @@ private:
         shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs_sky.glsl"));
         shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps_sky.glsl"));
         _prog = std::make_unique<RenderProgram>(shaders);
+        _prog->use();
         _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, kGlBufferDynamic);
+        _prog->assignTextureUnit("skytexture0", kTextureUnitSky0);
+        _prog->assignTextureUnit("skytexture1", kTextureUnitSky1);
     }
 
     std::unique_ptr<RenderProgram> _prog;
     std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
+    GLuint _uniformBlockIndex;
 };
 
 class ParticleRenderPass
@@ -169,6 +172,11 @@ class ParticleRenderPass
         GLfloat origin[4];
     };
 public:
+    enum
+    {
+        kVertexInputVertex,
+        kVertexInputColor
+    };
     static ParticleRenderPass &getInstance()
     {
         static ParticleRenderPass singleton;
@@ -188,7 +196,7 @@ public:
     void use()
     {
         _prog->use();
-        _prog->setUniformBlock("UniformBlock", *_ufmBuf);
+        _prog->setUniformBlock(_uniformBlockIndex, *_ufmBuf);
     }
 
 private:
@@ -199,8 +207,10 @@ private:
         shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps_particle.glsl"));
         _prog = std::make_unique<RenderProgram>(shaders);
         _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, kGlBufferDynamic);
+        _uniformBlockIndex = _prog->getUniformBlockIndex("UniformBlock");
     }
 
     std::unique_ptr<RenderProgram> _prog;
     std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
+    GLuint _uniformBlockIndex;
 };

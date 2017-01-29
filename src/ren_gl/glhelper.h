@@ -200,17 +200,30 @@ public:
     {
         glUseProgram(_handle);
     }
-    void setUniformBlock(const std::string& name, GLGenericBuffer& buf)
+    GLuint getUniformBlockIndex(const char* name) const
     {
-        GLuint idx = glGetUniformBlockIndex(_handle, name.c_str());
-        if (idx != GL_INVALID_INDEX)
-            buf.bind(GL_UNIFORM_BUFFER, idx);
-        else
-            printf("invalid uniform name\n");
+        auto idx = glGetUniformBlockIndex(_handle, name);
+        assert(idx != GL_INVALID_INDEX);
+        return idx;
+    }
+    void setUniformBlock(const char* name, GLGenericBuffer& buf)
+    {
+        setUniformBlock(getUniformBlockIndex(name), buf);
+    }
+    void setUniformBlock(GLuint idx, GLGenericBuffer& buf)
+    {
+        buf.bind(GL_UNIFORM_BUFFER, idx);
+    }
+    GLuint getUniformLocation(const char* name) const
+    {
+        return glGetUniformLocation(_handle, name);
     }
     void assignTextureUnit(const char* textureName, GLint textureUnit)
     {
-        auto loc = glGetUniformLocation(_handle, textureName);
+        assignTextureUnit(getUniformLocation(textureName), textureUnit);
+    }
+    void assignTextureUnit(GLuint loc, GLint textureUnit)
+    {
         glUniform1i(loc, textureUnit);
     }
 };

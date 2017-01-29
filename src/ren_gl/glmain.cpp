@@ -148,8 +148,8 @@ void D_EndParticles (void)
         return;
     GLBuffer<ParticleVertex> particleBuffer(activeParticles.data(), activeParticles.size());
     particleVao->bind();
-    particleVao->vertexBuffer(0, particleBuffer, 0);
-    particleVao->vertexBuffer(1, particleBuffer, offsetof(ParticleVertex, color));
+    particleVao->vertexBuffer(ParticleRenderPass::kVertexInputVertex, particleBuffer, 0);
+    particleVao->vertexBuffer(ParticleRenderPass::kVertexInputColor, particleBuffer, offsetof(ParticleVertex, color));
 
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);

@@ -162,28 +162,28 @@ void LevelRenderer::build()
 
     _vao = std::make_unique<VertexArray>();
 
-    _vao->enableAttrib(kVertexInputVertex);
-    _vao->format(kVertexInputVertex, 3, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputVertex, *_vertexBuf, 0);
+    _vao->enableAttrib(DefaultRenderPass::kVertexInputVertex);
+    _vao->format(DefaultRenderPass::kVertexInputVertex, 3, GL_FLOAT, GL_FALSE);
+    _vao->vertexBuffer(DefaultRenderPass::kVertexInputVertex, *_vertexBuf, 0);
 
-    _vao->enableAttrib(kVertexInputNormal);
-    _vao->format(kVertexInputNormal, 3, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputNormal, *_vertexBuf,
+    _vao->enableAttrib(DefaultRenderPass::kVertexInputNormal);
+    _vao->format(DefaultRenderPass::kVertexInputNormal, 3, GL_FLOAT, GL_FALSE);
+    _vao->vertexBuffer(DefaultRenderPass::kVertexInputNormal, *_vertexBuf,
         offsetof(VertexAttr, normal));
 
-    _vao->enableAttrib(kVertexInputLightTexCoord);
-    _vao->format(kVertexInputLightTexCoord, 2, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputLightTexCoord, *_vertexBuf,
+    _vao->enableAttrib(DefaultRenderPass::kVertexInputLightTexCoord);
+    _vao->format(DefaultRenderPass::kVertexInputLightTexCoord, 2, GL_FLOAT, GL_FALSE);
+    _vao->vertexBuffer(DefaultRenderPass::kVertexInputLightTexCoord, *_vertexBuf,
         offsetof(VertexAttr, lightuv));
 
-    _vao->enableAttrib(kVertexInputDiffuseTexCoord);
-    _vao->format(kVertexInputDiffuseTexCoord, 2, GL_FLOAT, GL_FALSE);
-    _vao->vertexBuffer(kVertexInputDiffuseTexCoord, *_vertexBuf,
+    _vao->enableAttrib(DefaultRenderPass::kVertexInputDiffuseTexCoord);
+    _vao->format(DefaultRenderPass::kVertexInputDiffuseTexCoord, 2, GL_FLOAT, GL_FALSE);
+    _vao->vertexBuffer(DefaultRenderPass::kVertexInputDiffuseTexCoord, *_vertexBuf,
         offsetof(VertexAttr, diffuseuv));
 
-    _vao->enableAttrib(kVertexInputLightStyle);
-    _vao->format(kVertexInputLightStyle, 4, GL_UNSIGNED_BYTE, GL_TRUE);
-    _vao->vertexBuffer(kVertexInputLightStyle, *_vertexBuf,
+    _vao->enableAttrib(DefaultRenderPass::kVertexInputLightStyle);
+    _vao->format(DefaultRenderPass::kVertexInputLightStyle, 4, GL_UNSIGNED_BYTE, GL_TRUE);
+    _vao->vertexBuffer(DefaultRenderPass::kVertexInputLightStyle, *_vertexBuf,
         offsetof(VertexAttr, styles));
 
     _vao->indexBuffer(*_idxBuf);
@@ -269,13 +269,13 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
         // bind the light map, and draw all normal walls
         DefaultRenderPass::getInstance().setup(vid.width, vid.height, modelMatrix, viewMatrix,
             _lightStyles.data(), {0, 0, 0, 0});
-        TextureBinding lightmapBinding(*_lightmap, kTextureUnitLight);
+        TextureBinding lightmapBinding(*_lightmap, DefaultRenderPass::kTextureUnitLight);
         for (auto& textureChain: _diffuseTextureChains)
         {
             if (!textureChain.vertexes.empty())
             {
                 // bind diffuse map
-                TextureBinding diffusemapBinding(textureChain.texture, kTextureUnitDiffuse);
+                TextureBinding diffusemapBinding(textureChain.texture, DefaultRenderPass::kTextureUnitDiffuse);
                 _idxBuf->update(textureChain.vertexes);
                 glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
             }
@@ -284,13 +284,13 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
 
     // draw turb textures
     DefaultRenderPass::getInstance().setup(vid.width, vid.height, modelMatrix, viewMatrix,
-        _lightStyles.data(), {1.0, 1.0, 1.0, 0}, kFlagTurbulence);
+        _lightStyles.data(), {1.0, 1.0, 1.0, 0}, DefaultRenderPass::kFlagTurbulence);
     for (auto& textureChain: _turbulenceTextureChains)
     {
         if (!textureChain.vertexes.empty())
         {
             // bind diffuse map
-            TextureBinding diffusemapBinding(textureChain.texture, kTextureUnitDiffuse);
+            TextureBinding diffusemapBinding(textureChain.texture, DefaultRenderPass::kTextureUnitDiffuse);
             _idxBuf->update(textureChain.vertexes);
             glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
         }
@@ -305,8 +305,8 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
         if (!textureChain.vertexes.empty())
         {
             // bind diffuse map
-            TextureBinding skyBinding0(textureChain.texture, kTextureUnitSky0);
-            TextureBinding skyBinding1(_skyBackgroundTextures[i], kTextureUnitSky1);
+            TextureBinding skyBinding0(textureChain.texture, SkyRenderPass::kTextureUnitSky0);
+            TextureBinding skyBinding1(_skyBackgroundTextures[i], SkyRenderPass::kTextureUnitSky1);
             _idxBuf->update(textureChain.vertexes);
             glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
         }
