@@ -27,10 +27,14 @@ extern uint32_t vid_current_palette[256];
  * refactor texture loading
  * Fullbrights
  * Post processing
+ * Weapon clipping
  */
 
 std::unique_ptr<LevelRenderer> levelRenderer;
 std::vector<std::unique_ptr<ModelRenderer>> modelRenderers;
+
+extern cvar_t	scr_fov;
+glm::mat4 r_projection;
 
 void drawLevel();
 void drawEntities();
@@ -59,6 +63,12 @@ void R_InitTextures (void)
 
 void R_RenderView (void)
 {
+    r_projection = glm::perspective(
+        glm::radians(scr_fov.value * 0.75f), // y fov
+        (float)vid.width / vid.height,       // aspect ratio
+        1.0f,                                // near
+        5000.0f);                            // far
+
     // sound output uses these
    	VectorCopy(r_refdef.vieworg, r_origin);
 	AngleVectors (r_refdef.viewangles, vpn, vright, vup);
@@ -77,7 +87,6 @@ void R_RenderView (void)
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
 {
-
 }
 
 void R_InitSky (struct texture_s *mt)
@@ -155,7 +164,7 @@ void D_EndParticles (void)
     glm::vec3 eyeDirection = qvec2glm(vpn);
     glm::mat4 viewMatrix = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
     ParticleRenderPass::getInstance().use();
-    ParticleRenderPass::getInstance().setup(vid.width, vid.height, viewMatrix, glm::vec4(eyePos, 1.0));
+    ParticleRenderPass::getInstance().setup(r_projection, viewMatrix, glm::vec4(eyePos, 1.0));
     glDrawArrays(GL_POINTS, 0, particleBuffer.size());
 }
 

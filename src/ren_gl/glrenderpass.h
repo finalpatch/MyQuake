@@ -60,11 +60,9 @@ public:
         _uniformBlock.ndlights = ndlights;
     }
 
-    void setup(float w, float h, const glm::mat4 &model, const glm::mat4 &view, const GLfloat *lightStyles,
+    void setup(const glm::mat4& projection, const glm::mat4 &model, const glm::mat4 &view, const GLfloat *lightStyles,
         const glm::vec4 &ambientLight, GLuint flags = 0)
     {
-        auto projection = glm::perspective(glm::radians(60.0f), w / h, 1.0f, 5000.0f);
-
         memcpy(_uniformBlock.model, glm::value_ptr(model), sizeof(_uniformBlock.model));
         memcpy(_uniformBlock.view, glm::value_ptr(view), sizeof(_uniformBlock.view));
         memcpy(_uniformBlock.projection, glm::value_ptr(projection), sizeof(_uniformBlock.projection));
@@ -127,9 +125,8 @@ public:
         return singleton;
     }
 
-    void setup(float w, float h, const glm::mat4 &view, const glm::vec4& origin)
+    void setup(const glm::mat4& projection, const glm::mat4 &view, const glm::vec4& origin)
     {
-        auto projection = glm::perspective(glm::radians(60.0f), w / h, 1.0f, 5000.0f);
         UniformBlock uniformBlock;
         memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));
@@ -183,9 +180,8 @@ public:
         return singleton;
     }
 
-    void setup(float w, float h, const glm::mat4 &view, const glm::vec4& origin)
+    void setup(const glm::mat4& projection, const glm::mat4 &view, const glm::vec4& origin)
     {
-        auto projection = glm::perspective(glm::radians(60.0f), w / h, 1.0f, 5000.0f);
         UniformBlock uniformBlock;
         memcpy(uniformBlock.view, glm::value_ptr(view), sizeof(uniformBlock.view));
         memcpy(uniformBlock.projection, glm::value_ptr(projection), sizeof(uniformBlock.projection));

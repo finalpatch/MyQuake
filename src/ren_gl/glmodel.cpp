@@ -14,6 +14,7 @@ float r_avertexnormals[][3] = {
 };
 
 extern uint32_t vid_current_palette[256];
+extern glm::mat4 r_projection;
 
 static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices, const stvert_t* stverts,
     std::vector<VertexAttr>& vertexData)
@@ -177,12 +178,12 @@ void ModelRenderer::render(int frameId, float time, const float* origin, const f
 
     TextureBinding diffusemapBinding(_skins[0]->getTexture(time), DefaultRenderPass::kTextureUnitDiffuse);
     // front side
-    DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
+    DefaultRenderPass::getInstance().setup(r_projection, model, view,
         nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, 0);
     _vao->indexBuffer(*_frontSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _frontSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
     // back side
-    DefaultRenderPass::getInstance().setup(vid.width, vid.height, model, view,
+    DefaultRenderPass::getInstance().setup(r_projection, model, view,
         nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, DefaultRenderPass::kFlagBackSide);
     _vao->indexBuffer(*_backSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _backSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);

@@ -11,6 +11,7 @@ const static GLuint kLightmapAtlasSize = 1024;
 const static GLuint kLightmapAtlasPadding = 1;
 
 extern uint32_t vid_current_palette[256];
+extern glm::mat4 r_projection;
 
 LevelRenderer::LevelRenderer() :
     _lightStyles(MAX_LIGHTSTYLES),
@@ -267,7 +268,7 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
     DefaultRenderPass::getInstance().use();
     {
         // bind the light map, and draw all normal walls
-        DefaultRenderPass::getInstance().setup(vid.width, vid.height, modelMatrix, viewMatrix,
+        DefaultRenderPass::getInstance().setup(r_projection, modelMatrix, viewMatrix,
             _lightStyles.data(), {0, 0, 0, 0});
         TextureBinding lightmapBinding(*_lightmap, DefaultRenderPass::kTextureUnitLight);
         for (auto& textureChain: _diffuseTextureChains)
@@ -283,7 +284,7 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
     }
 
     // draw turb textures
-    DefaultRenderPass::getInstance().setup(vid.width, vid.height, modelMatrix, viewMatrix,
+    DefaultRenderPass::getInstance().setup(r_projection, modelMatrix, viewMatrix,
         _lightStyles.data(), {1.0, 1.0, 1.0, 0}, DefaultRenderPass::kFlagTurbulence);
     for (auto& textureChain: _turbulenceTextureChains)
     {
@@ -298,7 +299,7 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
 
     // draw sky textures
     SkyRenderPass::getInstance().use();
-    SkyRenderPass::getInstance().setup(vid.width, vid.height, viewMatrix, glm::vec4(eyePos, 1.0));
+    SkyRenderPass::getInstance().setup(r_projection, viewMatrix, glm::vec4(eyePos, 1.0));
     for (unsigned i = 0; i < _skyTextureChains.size(); ++i)
     {
         auto& textureChain = _skyTextureChains[i];
