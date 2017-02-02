@@ -86,7 +86,6 @@ void R_RenderView (void)
     drawLevel();
     drawEntities();
     drawWeapon();
-
     R_DrawParticles();
 }
 
@@ -254,5 +253,8 @@ void drawWeapon()
     auto& renderer = modelRenderers[model->rendererData];
     // allways give some light on gun
     float ambientLight = std::max(0.1f, levelRenderer->lightPoint(entity->origin));
+    glDepthFunc(GL_ALWAYS);
+    renderer->render(entity, ambientLight);
+    glDepthFunc(GL_LESS);
     renderer->render(entity, ambientLight);
 }
