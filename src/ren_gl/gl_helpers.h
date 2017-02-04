@@ -448,7 +448,7 @@ public:
         _w(width), _h(height), _data(_w * _h)
     {
         if (data)
-            memcpy(_data.data(), data, _data.size() * sizeof(T));
+            std::copy_n(data, _data.size(), _data.data());
     }
     void clear(T color)
     {
