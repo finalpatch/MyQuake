@@ -1,5 +1,4 @@
-#include "glmodel.h"
-#include "glrenderpass.h"
+#include "gl_model.h"
 
 #include <algorithm>
 #include <set>

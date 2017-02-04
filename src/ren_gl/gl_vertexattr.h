@@ -1,6 +1,6 @@
 #pragma once
 
-#include "glhelper.h"
+#include "gl_helpers.h"
 
 struct VertexAttr
 {

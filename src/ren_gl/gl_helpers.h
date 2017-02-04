@@ -1,7 +1,9 @@
 #pragma once
 
-#include "glcommon.h"
+#include <array>
 #include <algorithm>
+#include <memory>
+#include "gl_utils.h"
 
 #ifdef GL45
     #include <glbinding/gl45core/gl.h>

@@ -1,3 +1,15 @@
 {
-    "files.associations": {}
+    "files.associations": {
+        "vector": "cpp",
+        "VECTOR": "cpp",
+        "MEMORY": "cpp",
+        "ARRAY": "cpp",
+        "*H*H*HARRAY": "cpp",
+        "FUNCTIONAL": "cpp",
+        "*HTUPLE": "cpp",
+        "TUPLE": "cpp",
+        "UTILITY": "cpp",
+        "*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*H*hpp*hpp*hpp*hpp*HISTREAM": "cpp",
+        "ISTREAM": "cpp"
+    }
 }

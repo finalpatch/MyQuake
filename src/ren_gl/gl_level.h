@@ -1,7 +1,6 @@
 #pragma once
 
-#include "glhelper.h"
-#include "glrenderpass.h"
+#include "gl_renderpass.h"
 
 struct model_s;
 struct mleaf_s;

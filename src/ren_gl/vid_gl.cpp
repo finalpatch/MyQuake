@@ -1,7 +1,5 @@
 #include <SDL2/SDL.h>
 
-#include "glcommon.h"
-
 extern "C"
 {
 #include "quakedef.h"
@@ -18,9 +16,6 @@ void VID_SetPalette (unsigned char *palette)
 {
     for(int i = 0; i < 256; ++i)
     {
-        // vid_current_palette[i] =  
-        //     uint32_t(palette[2]) | (uint32_t(palette[1]) << 8) |
-        //     (uint32_t(palette[0]) << 16) | 0xff000000;
         vid_current_palette[i] =  0xff |
             (uint32_t(palette[2]) << 8) |
             (uint32_t(palette[1]) << 16) |

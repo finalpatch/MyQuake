@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+#include <string>
 #include <glm/glm.hpp>
 
 template<typename T>

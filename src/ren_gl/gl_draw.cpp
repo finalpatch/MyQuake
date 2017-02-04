@@ -1,5 +1,3 @@
-#include "glcommon.h"
-
 extern "C"
 {
 #include "quakedef.h"

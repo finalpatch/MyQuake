@@ -1,4 +1,5 @@
-#include "glcommon.h"
+#include <array>
+#include "gl_utils.h"
 
 extern "C"
 {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "glhelper.h"
-#include "glvertexattr.h"
+#include "gl_helpers.h"
+#include "gl_vertexattr.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>

@@ -1,10 +1,8 @@
 #include <glbinding/Binding.h>
-
 #include <unordered_map>
 
-#include "glmodel.h"
-#include "gllevel.h"
-#include "glrenderpass.h"
+#include "gl_model.h"
+#include "gl_level.h"
 
 extern "C"
 {
