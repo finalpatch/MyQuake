@@ -158,8 +158,8 @@ void LevelRenderer::loadBrushModel(const model_s* brushModel)
 
 void LevelRenderer::build()
 {
-    _vertexBuf = std::make_unique<GLBuffer<VertexAttr>>(_vertexData);
-    _idxBuf = std::make_unique<GLBuffer<GLuint>>(nullptr, _vertexData.size(), kGlBufferDynamic);
+    _vertexBuf = std::make_unique<GLBuffer<VertexAttr, GL_ARRAY_BUFFER>>(_vertexData);
+    _idxBuf = std::make_unique<GLBuffer<GLuint, GL_ELEMENT_ARRAY_BUFFER>>(nullptr, _vertexData.size(), kGlBufferDynamic);
 
     _vao = std::make_unique<VertexArray>();
 

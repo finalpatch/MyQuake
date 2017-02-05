@@ -85,9 +85,9 @@ public:
 
 private:
     std::unique_ptr<VertexArray> _vao;
-    std::unique_ptr<GLBuffer<VertexAttr>> _vertexBuf;
-    std::unique_ptr<GLBuffer<GLushort>> _frontSideIdxBuf;
-    std::unique_ptr<GLBuffer<GLushort>> _backSideIdxBuf;
+    std::unique_ptr<GLBuffer<VertexAttr, GL_ARRAY_BUFFER>> _vertexBuf;
+    std::unique_ptr<GLBuffer<GLushort, GL_ELEMENT_ARRAY_BUFFER>> _frontSideIdxBuf;
+    std::unique_ptr<GLBuffer<GLushort, GL_ELEMENT_ARRAY_BUFFER>> _backSideIdxBuf;
     std::vector<std::unique_ptr<Skin>> _skins;
     std::vector<std::unique_ptr<ModelFrame>> _frames;
     std::string _name;

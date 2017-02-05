@@ -90,14 +90,14 @@ private:
         shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps.glsl"));
         _prog = std::make_unique<RenderProgram>(shaders);
         _prog->use();
-        _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, kGlBufferDynamic);
+        _ufmBuf = std::make_unique<GLBuffer<UniformBlock, GL_UNIFORM_BUFFER>>(nullptr, 1, kGlBufferDynamic);
         _uniformBlockIndex = _prog->getUniformBlockIndex("UniformBlock");
         _prog->assignTextureUnit("lightmap0", kTextureUnitLight);
         _prog->assignTextureUnit("diffusemap", kTextureUnitDiffuse);
     }
 
     std::unique_ptr<RenderProgram> _prog;
-    std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
+    std::unique_ptr<GLBuffer<UniformBlock, GL_UNIFORM_BUFFER>> _ufmBuf;
     UniformBlock _uniformBlock;
     GLuint _uniformBlockIndex;
 };
@@ -150,13 +150,13 @@ private:
         shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps_sky.glsl"));
         _prog = std::make_unique<RenderProgram>(shaders);
         _prog->use();
-        _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, kGlBufferDynamic);
+        _ufmBuf = std::make_unique<GLBuffer<UniformBlock, GL_UNIFORM_BUFFER>>(nullptr, 1, kGlBufferDynamic);
         _prog->assignTextureUnit("skytexture0", kTextureUnitSky0);
         _prog->assignTextureUnit("skytexture1", kTextureUnitSky1);
     }
 
     std::unique_ptr<RenderProgram> _prog;
-    std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
+    std::unique_ptr<GLBuffer<UniformBlock, GL_UNIFORM_BUFFER>> _ufmBuf;
     GLuint _uniformBlockIndex;
 };
 
@@ -202,11 +202,11 @@ private:
         shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs_particle.glsl"));
         shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps_particle.glsl"));
         _prog = std::make_unique<RenderProgram>(shaders);
-        _ufmBuf = std::make_unique<GLBuffer<UniformBlock>>(nullptr, 1, kGlBufferDynamic);
+        _ufmBuf = std::make_unique<GLBuffer<UniformBlock, GL_UNIFORM_BUFFER>>(nullptr, 1, kGlBufferDynamic);
         _uniformBlockIndex = _prog->getUniformBlockIndex("UniformBlock");
     }
 
     std::unique_ptr<RenderProgram> _prog;
-    std::unique_ptr<GLBuffer<UniformBlock>> _ufmBuf;
+    std::unique_ptr<GLBuffer<UniformBlock, GL_UNIFORM_BUFFER>> _ufmBuf;
     GLuint _uniformBlockIndex;
 };

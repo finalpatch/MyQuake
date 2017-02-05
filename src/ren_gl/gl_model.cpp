@@ -111,7 +111,7 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
             _frames.push_back(std::move(groupedFrame));
         }
     }
-    _vertexBuf = std::make_unique<GLBuffer<VertexAttr>>(vertexData);
+    _vertexBuf = std::make_unique<GLBuffer<VertexAttr, GL_ARRAY_BUFFER>>(vertexData);
 
     // load triangles
     std::vector<GLushort> frontIndexes;
@@ -122,8 +122,8 @@ ModelRenderer::ModelRenderer(const model_s* entityModel) : _name(entityModel->na
         auto& side = triangles[i].facesfront ? frontIndexes : backIndexes;
         side.insert(side.end(), triangles[i].vertindex, triangles[i].vertindex + 3);
     }
-    _frontSideIdxBuf = std::make_unique<GLBuffer<GLushort>>(frontIndexes);
-    _backSideIdxBuf = std::make_unique<GLBuffer<GLushort>>(backIndexes);
+    _frontSideIdxBuf = std::make_unique<GLBuffer<GLushort, GL_ELEMENT_ARRAY_BUFFER>>(frontIndexes);
+    _backSideIdxBuf = std::make_unique<GLBuffer<GLushort, GL_ELEMENT_ARRAY_BUFFER>>(backIndexes);
 
     // setup vertex attributes
     _vao = std::make_unique<VertexArray>();
@@ -190,7 +190,9 @@ void ModelRenderer::render(const entity_s* entity, float ambientLight)
         nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, 0);
     _vao->indexBuffer(*_frontSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _frontSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
+
     // back side
+    DefaultRenderPass::getInstance().use(); // need this to make it work in vmware, sigh
     DefaultRenderPass::getInstance().setup(r_projectionMatrix, model, r_viewMatrix,
         nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, DefaultRenderPass::kFlagBackSide);
     _vao->indexBuffer(*_backSideIdxBuf);

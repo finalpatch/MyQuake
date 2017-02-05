@@ -31,8 +31,8 @@ private:
 
     // vertex data
     std::unique_ptr<VertexArray> _vao;
-    std::unique_ptr<GLBuffer<VertexAttr>> _vertexBuf;
-    std::unique_ptr<GLBuffer<GLuint>> _idxBuf;
+    std::unique_ptr<GLBuffer<VertexAttr, GL_ARRAY_BUFFER>> _vertexBuf;
+    std::unique_ptr<GLBuffer<GLuint, GL_ELEMENT_ARRAY_BUFFER>> _idxBuf;
 
     // textures
     std::unique_ptr<Texture> _lightmap;

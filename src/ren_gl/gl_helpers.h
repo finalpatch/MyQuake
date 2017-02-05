@@ -69,7 +69,7 @@ public:
     virtual size_t stride() const = 0;
 };
 
-template<typename T>
+template<typename T, GLenum BUFFER_TYPE>
 class GLBuffer : public GLGenericBuffer
 {
     size_t _size;
@@ -89,8 +89,8 @@ public:
         : _size(size)
     {
         glGenBuffers(1, &_handle);
-        bind(GL_COPY_WRITE_BUFFER);
-        glBufferData(GL_COPY_WRITE_BUFFER, size * sizeof(T), data, flags);
+        bind(BUFFER_TYPE);
+        glBufferData(BUFFER_TYPE, size * sizeof(T), data, flags);
     }
     explicit GLBuffer(const std::vector<T>& data, GLenum flags = GL_STATIC_DRAW)
         : GLBuffer(data.data(), data.size(), flags)
@@ -118,8 +118,8 @@ public:
 #ifdef GL45
         glNamedBufferSubData(_handle, offset * sizeof(T), size * sizeof(T), data);
 #else
-        bind(GL_COPY_WRITE_BUFFER);
-        glBufferSubData(GL_COPY_WRITE_BUFFER, offset * sizeof(T), size * sizeof(T), data);
+        bind(BUFFER_TYPE);
+        glBufferSubData(BUFFER_TYPE, offset * sizeof(T), size * sizeof(T), data);
 #endif
     }
     void update(const std::vector<T>& data, size_t offset = 0)

@@ -157,7 +157,7 @@ void D_EndParticles (void)
 {
     if (activeParticles.empty())
         return;
-    GLBuffer<ParticleVertex> particleBuffer(activeParticles.data(), activeParticles.size());
+    GLBuffer<ParticleVertex, GL_ARRAY_BUFFER> particleBuffer(activeParticles.data(), activeParticles.size());
     particleVao->bind();
     particleVao->vertexBuffer(ParticleRenderPass::kVertexInputVertex, particleBuffer, 0);
     particleVao->vertexBuffer(ParticleRenderPass::kVertexInputColor, particleBuffer, offsetof(ParticleVertex, color));

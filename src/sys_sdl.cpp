@@ -282,8 +282,10 @@ int main (int argc, char **argv)
 	static quakeparms_t    parms;
     double		time, oldtime, newtime;
 
-	parms.memsize = 16*1024*1024;
-	parms.membase = malloc (parms.memsize);
+	static byte pool[16*1024*1024];
+
+	parms.memsize = sizeof(pool);
+	parms.membase = pool;
 	parms.basedir = ".";
 
 	COM_InitArgv (argc, argv);
