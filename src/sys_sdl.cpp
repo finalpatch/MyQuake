@@ -162,7 +162,7 @@ void Sys_Error (const char *error, ...)
 	exit (1);
 }
 
-void Sys_Printf (char *fmt, ...)
+void Sys_Printf (const char *fmt, ...)
 {
 	va_list         argptr;
 

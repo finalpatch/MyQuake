@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <chrono>
 #include <glm/glm.hpp>
 
 template<typename T>
@@ -24,3 +25,21 @@ Box qbox2glm(const T* min, const T* max)
 
 Frustum extractViewPlanes(const glm::mat4 mvp);
 bool intersectFrustumAABB(const Frustum& planes, const std::array<glm::vec3, 2>& box);
+
+class Timing
+{
+    std::chrono::steady_clock::time_point _start;
+public:
+    Timing()
+    {
+        _start = std::chrono::steady_clock::now();
+    }
+    void print(const char* msg)
+    {
+        using namespace std::chrono;
+        auto now = steady_clock::now();
+        auto t = now - _start;
+        _start = now;
+        printf("%s : %d ms\n", msg, duration_cast<milliseconds>(t).count());
+    }
+};

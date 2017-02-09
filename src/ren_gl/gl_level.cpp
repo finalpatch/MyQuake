@@ -590,7 +590,7 @@ void LevelRenderer::loadTexture(texture_s* texture)
     if (!texture)
         return;
 
-    Con_Printf("loading texture: %s\n", texture->name);
+    Sys_Printf("loading texture: %s\n", texture->name);
 
     std::vector<TextureChain>* textureChains;
     if (texture->name[0] == '*')

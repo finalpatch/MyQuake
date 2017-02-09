@@ -98,6 +98,7 @@ void R_InitSky (struct texture_s *mt)
 
 void R_NewMap (void)
 {
+    Timing timing;
     modelRenderers.clear();
     levelRenderer = std::make_unique<LevelRenderer>();
 
@@ -108,12 +109,12 @@ void R_NewMap (void)
             continue;
         if (model->type == mod_brush)
         {
-            Con_Printf("load brush model %d: %s\n", i, model->name);
+            Sys_Printf("load brush model %d: %s\n", i, model->name);
             levelRenderer->loadBrushModel(model);
         }
         else if (model->type == mod_alias)
         {
-            Con_Printf("load alias model %d: %s\n", i, model->name);
+            Sys_Printf("load alias model %d: %s\n", i, model->name);
             model->rendererData = modelRenderers.size();
             modelRenderers.emplace_back(std::make_unique<ModelRenderer>(model));
         }
@@ -121,6 +122,7 @@ void R_NewMap (void)
 
     levelRenderer->build();
     R_ClearParticles();
+    timing.print("load level");
 }
 
 struct ParticleVertex
