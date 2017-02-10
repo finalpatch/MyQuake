@@ -901,3 +901,7 @@ void R_ZDrawSubmodelPolys (model_t *pmodel)
 		}
 	}
 }
+
+void R_cachePicture(const char* name, const qpic_t* data)
+{
+}

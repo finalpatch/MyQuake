@@ -16,7 +16,9 @@ int			menu_numcachepics;
 
 qpic_t	*Draw_PicFromWad (char *name)
 {
-	return W_GetLumpName (name);
+	qpic_t* pic = W_GetLumpName (name);
+	R_cachePicture(name, pic);
+	return pic;
 }
 
 /*
@@ -59,6 +61,8 @@ qpic_t	*Draw_CachePic (char *path)
 	}
 
 	SwapPic (dat);
+
+	R_cachePicture(path, dat);
 
 	return dat;
 }

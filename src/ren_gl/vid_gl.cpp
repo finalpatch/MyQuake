@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <glbinding/Binding.h>
 
 extern "C"
 {
@@ -59,6 +60,8 @@ void VID_Init (unsigned char *palette)
 	vid.colormap = host_colormap;
 	vid.buffer = vid.conbuffer = nullptr;
 	vid.rowbytes = vid.conrowbytes = initialWidth;
+
+    glbinding::Binding::initialize();
 }
 
 void VID_Shutdown (void)

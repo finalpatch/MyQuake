@@ -1,3 +1,6 @@
+#include <unordered_map>
+#include "gl_helpers.h"
+
 extern "C"
 {
 #include "quakedef.h"
@@ -5,6 +8,21 @@ extern "C"
 byte		*draw_chars;				// 8*8 graphic characters
 qpic_t		*draw_disc;
 qpic_t		*draw_backtile;
+}
+
+extern uint32_t vid_current_palette[256];
+
+std::unordered_map<std::string, std::unique_ptr<Texture>> qpicTextureCache;
+
+void R_cachePicture(const char* name, const qpic_t* data)
+{
+    std::vector<uint32_t> rgbtex(data->width * data->height);
+    for (unsigned i = 0; i < rgbtex.size(); ++i)
+        rgbtex[i] = vid_current_palette[data->data[i]];
+    auto texture = std::make_unique<Texture>(GL_TEXTURE_2D, data->width, data->height, Texture::RGBA,
+        GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST, rgbtex.data());
+    qpicTextureCache.emplace(name, std::move(texture));
+    Sys_Printf("cache picture %s\n", name);
 }
 
 void Draw_Init (void)

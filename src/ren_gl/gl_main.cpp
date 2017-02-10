@@ -40,8 +40,6 @@ void drawWeapon();
 
 void R_Init (void)
 {
-    glbinding::Binding::initialize();
-
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 

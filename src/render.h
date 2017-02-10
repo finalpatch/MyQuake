@@ -150,3 +150,5 @@ extern qboolean	r_cache_thrash;	// set if thrashing the surface cache
 void D_FlushCaches (void);
 void D_InitCaches (void *buffer, int size);
 void R_SetVrect (vrect_t *pvrect, vrect_t *pvrectin, int lineadj);
+
+void R_cachePicture(const char* name, const qpic_t* data);
