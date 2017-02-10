@@ -14,6 +14,10 @@ static SDL_GLContext ctx = nullptr;
 
 void VID_SetPalette (unsigned char *palette)
 {
+    static bool paletteSet = false;
+    if (paletteSet)
+        return;
+    paletteSet = true;
     for(int i = 0; i < 256; ++i)
     {
         vid_current_palette[i] =  0xff |
