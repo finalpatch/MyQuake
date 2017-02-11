@@ -81,6 +81,10 @@ void Draw_Init (void)
 }
 void Draw_Character (int x, int y, int num)
 {
+    // don't draw invisible chars
+    if (num == ' ' || num == '\n' || num == '\t' || num == 'r' || num == '\f')
+        return;
+
 	int row = num >> 4;
 	int col = num & 15;
 
