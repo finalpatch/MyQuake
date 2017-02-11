@@ -15,23 +15,10 @@ static SDL_GLContext ctx = nullptr;
 
 void VID_SetPalette (unsigned char *palette)
 {
-    static bool paletteSet = false;
-    if (paletteSet)
-        return;
-    paletteSet = true;
-    for(int i = 0; i < 256; ++i)
-    {
-        vid_current_palette[i] =  0xff |
-            (uint32_t(palette[2]) << 8) |
-            (uint32_t(palette[1]) << 16) |
-            (uint32_t(palette[0]) << 24) ;
-        palette += 3;
-    }
 }
 
 void VID_ShiftPalette (unsigned char *palette)
 {
-    VID_SetPalette (palette);
 }
 
 void VID_Init (unsigned char *palette)
@@ -60,6 +47,15 @@ void VID_Init (unsigned char *palette)
 	vid.colormap = host_colormap;
 	vid.buffer = vid.conbuffer = nullptr;
 	vid.rowbytes = vid.conrowbytes = initialWidth;
+
+    for(int i = 0; i < 256; ++i)
+    {
+        vid_current_palette[i] =  0xff   |
+            (uint32_t(palette[2]) << 8)  |
+            (uint32_t(palette[1]) << 16) |
+            (uint32_t(palette[0]) << 24) ;
+        palette += 3;
+    }
 
     glbinding::Binding::initialize();
 }

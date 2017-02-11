@@ -25,12 +25,16 @@ extern uint32_t vid_current_palette[256];
  * refactor texture loading
  * Fullbrights
  * Post processing
+ * 2D
  */
 
 std::unique_ptr<LevelRenderer> levelRenderer;
 std::vector<std::unique_ptr<ModelRenderer>> modelRenderers;
 
-extern cvar_t	scr_fov;
+extern std::unique_ptr<VertexArray> pictureVao;
+
+extern int sb_updates;
+extern cvar_t scr_fov;
 glm::mat4 r_projectionMatrix;
 glm::mat4 r_viewMatrix;
 
@@ -49,6 +53,8 @@ void R_Init (void)
 
     glEnable(GL_PROGRAM_POINT_SIZE);
 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     R_InitParticles();
 }
 
@@ -63,16 +69,21 @@ void R_RenderView (void)
    	VectorCopy(r_refdef.vieworg, r_origin);
 	AngleVectors (r_refdef.viewangles, vpn, vright, vup);
 
+    // get ready for 3D
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+
+    // camera
     r_projectionMatrix = glm::perspective(
         glm::radians(scr_fov.value * 0.75f), // y fov
         (float)vid.width / vid.height,       // aspect ratio
         1.0f,                                // near
         5000.0f);                            // far
-
     glm::vec3 eyePos = qvec2glm(r_origin);
     glm::vec3 eyeDirection = qvec2glm(vpn);
     r_viewMatrix = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
 
+    // clear buffers
     static GLfloat bgColor[] = {0.27, 0.53, 0.71, 1.0};
     glViewport(0, 0, vid.width, vid.height);
     glClearBufferfv(GL_COLOR, 0, bgColor);
@@ -82,6 +93,13 @@ void R_RenderView (void)
     drawEntities();
     drawWeapon();
     R_DrawParticles();
+
+    // get ready for 2D
+    sb_updates = 0; // always redraw sbar
+    glEnable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    PictureRenderPass::getInstance().use();
+    pictureVao->bind();
 }
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)

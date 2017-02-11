@@ -80,6 +80,8 @@ public:
     {
         _prog->use();
         _prog->setUniformBlock(_uniformBlockIndex, *_ufmBuf);
+        _prog->assignTextureUnit("lightmap0", kTextureUnitLight);
+        _prog->assignTextureUnit("diffusemap", kTextureUnitDiffuse);
     }
 
 private:
@@ -92,8 +94,6 @@ private:
         _prog->use();
         _ufmBuf = std::make_unique<GLBuffer<UniformBlock, GL_UNIFORM_BUFFER>>(nullptr, 1, kGlBufferDynamic);
         _uniformBlockIndex = _prog->getUniformBlockIndex("UniformBlock");
-        _prog->assignTextureUnit("lightmap0", kTextureUnitLight);
-        _prog->assignTextureUnit("diffusemap", kTextureUnitDiffuse);
     }
 
     std::unique_ptr<RenderProgram> _prog;
@@ -140,6 +140,8 @@ public:
     {
         _prog->use();
         _prog->setUniformBlock(_uniformBlockIndex, *_ufmBuf);
+        _prog->assignTextureUnit("skytexture0", kTextureUnitSky0);
+        _prog->assignTextureUnit("skytexture1", kTextureUnitSky1);
     }
 
 private:
@@ -151,8 +153,6 @@ private:
         _prog = std::make_unique<RenderProgram>(shaders);
         _prog->use();
         _ufmBuf = std::make_unique<GLBuffer<UniformBlock, GL_UNIFORM_BUFFER>>(nullptr, 1, kGlBufferDynamic);
-        _prog->assignTextureUnit("skytexture0", kTextureUnitSky0);
-        _prog->assignTextureUnit("skytexture1", kTextureUnitSky1);
     }
 
     std::unique_ptr<RenderProgram> _prog;
@@ -209,4 +209,48 @@ private:
     std::unique_ptr<RenderProgram> _prog;
     std::unique_ptr<GLBuffer<UniformBlock, GL_UNIFORM_BUFFER>> _ufmBuf;
     GLuint _uniformBlockIndex;
+};
+
+class PictureRenderPass
+{
+public:
+    static PictureRenderPass &getInstance()
+    {
+        static PictureRenderPass singleton;
+        return singleton;
+    }
+
+    void setup(float x, float y, float w, float h)
+    {
+        glUniform4f(_transformLocation, x, y, w, h);
+        glUniform4f(_srcrectLocation, 0.0f, 0.0f, 1.0f, 1.0f);
+    }
+
+    void setup(float x, float y, float w, float h,
+        float srcX, float srcY, float srcW, float srcH)
+    {
+        glUniform4f(_transformLocation, x, y, w, h);
+        glUniform4f(_srcrectLocation, srcX, srcY, srcW, srcH);
+    }
+
+    void use()
+    {
+        _prog->use();
+        _prog->assignTextureUnit("picture", 0);
+    }
+
+private:
+    PictureRenderPass()
+    {
+        std::vector<Shader> shaders;
+        shaders.emplace_back(GL_VERTEX_SHADER, readTextFile("shaders/vs_picture.glsl"));
+        shaders.emplace_back(GL_FRAGMENT_SHADER, readTextFile("shaders/ps_picture.glsl"));
+        _prog = std::make_unique<RenderProgram>(shaders);
+        _transformLocation = glGetUniformLocation(_prog->handle(), "transform");
+        _srcrectLocation = glGetUniformLocation(_prog->handle(), "srcrect");
+    }
+
+    std::unique_ptr<RenderProgram> _prog;
+    GLuint _transformLocation;
+    GLuint _srcrectLocation;
 };

@@ -1,5 +1,5 @@
 #include <unordered_map>
-#include "gl_helpers.h"
+#include "gl_renderpass.h"
 
 extern "C"
 {
@@ -10,19 +10,53 @@ qpic_t		*draw_disc;
 qpic_t		*draw_backtile;
 }
 
+const static int kCharWidth = 8;
+const static int kCharHeight = 8;
+const static int kCharRows = 16;
+const static int kCharCols = 16;
+
 extern uint32_t vid_current_palette[256];
 
-std::unordered_map<std::string, std::unique_ptr<Texture>> qpicTextureCache;
+struct QpicTexture
+{
+    const qpic_t* ptr;
+    std::unique_ptr<Texture> tex;
+};
+
+std::unique_ptr<VertexArray> pictureVao;
+std::unordered_map<std::string, QpicTexture> qpicTextureCache;
+std::unordered_map<const qpic_t*, std::string> qpicTextureIndex;
+std::unique_ptr<Texture> fontTex;
 
 void R_cachePicture(const char* name, const qpic_t* data)
 {
-    std::vector<uint32_t> rgbtex(data->width * data->height);
-    for (unsigned i = 0; i < rgbtex.size(); ++i)
-        rgbtex[i] = vid_current_palette[data->data[i]];
-    auto texture = std::make_unique<Texture>(GL_TEXTURE_2D, data->width, data->height, Texture::RGBA,
-        GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST, rgbtex.data());
-    qpicTextureCache.emplace(name, std::move(texture));
-    Sys_Printf("cache picture %s\n", name);
+    auto i = qpicTextureCache.find(name);
+    if (i == qpicTextureCache.end())
+    {
+        std::vector<uint32_t> rgbtex(data->width * data->height);
+        for (unsigned i = 0; i < rgbtex.size(); ++i)
+        {
+            auto clridx = data->data[i];
+            rgbtex[i] = (clridx == TRANSPARENT_COLOR) ? 0 : vid_current_palette[clridx];
+        }
+        auto texture = std::make_unique<Texture>(GL_TEXTURE_2D, data->width, data->height, Texture::RGBA,
+            GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST, rgbtex.data());
+        auto& elem = qpicTextureCache[name];
+        elem.ptr = data;
+        elem.tex = std::move(texture);
+        qpicTextureIndex[data] = name;
+        Sys_Printf("cache picture %s\n", name);
+    }
+    else
+    {
+        auto& elem = qpicTextureCache[name];
+        if (elem.ptr != data)
+        {
+            qpicTextureIndex.erase(elem.ptr);
+            qpicTextureIndex[data] = name;
+            elem.ptr = data;
+        }
+    }
 }
 
 void Draw_Init (void)
@@ -33,10 +67,30 @@ void Draw_Init (void)
     draw_chars = reinterpret_cast<byte*>(W_GetLumpName (conchars));
     draw_disc = reinterpret_cast<qpic_t*>(W_GetLumpName (disc));
     draw_backtile = reinterpret_cast<qpic_t*>(W_GetLumpName (backtile));
+
+    std::vector<uint32_t> rgbtex(kCharWidth * kCharHeight * kCharRows * kCharCols);
+    for (unsigned i = 0; i < rgbtex.size(); ++i)
+    {
+        auto clridx = draw_chars[i];
+        rgbtex[i] = (clridx == 0) ? 0 : vid_current_palette[clridx];
+    }
+    fontTex = std::make_unique<Texture>(GL_TEXTURE_2D, kCharWidth * kCharCols, kCharHeight * kCharRows, Texture::RGBA,
+        GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST, rgbtex.data());
+
+    pictureVao = std::make_unique<VertexArray>();
 }
 void Draw_Character (int x, int y, int num)
 {
+	int row = num >> 4;
+	int col = num & 15;
 
+    TextureBinding binding(*fontTex, 0);
+    PictureRenderPass::getInstance().setup(
+        float(x)/vid.width, float(y)/vid.height,
+        float(kCharWidth)/vid.width, float(kCharHeight)/vid.height,
+        float(col) / kCharCols, float(row) / kCharRows, 
+        1.0f / kCharCols, 1.0f / kCharRows);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 void Draw_DebugChar (char num)
 {
@@ -44,15 +98,25 @@ void Draw_DebugChar (char num)
 }
 void Draw_Pic (int x, int y, qpic_t *pic)
 {
-
+    auto i = qpicTextureIndex.find(pic);
+    if (i == qpicTextureIndex.end())
+        return;
+    auto j = qpicTextureCache.find(i->second);
+    if (j == qpicTextureCache.end())
+        return;
+    TextureBinding binding(*(j->second.tex), 0);
+    PictureRenderPass::getInstance().setup(float(x)/vid.width, float(y)/vid.height,
+        float(pic->width)/vid.width, float(pic->height)/vid.height);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 void Draw_TransPic (int x, int y, qpic_t *pic)
 {
-
+    return Draw_Pic(x, y, pic);
 }
 void Draw_TransPicTranslate (int x, int y, qpic_t *pic, byte *translation)
 {
-
+    // FIXME
+    return Draw_Pic(x, y, pic);
 }
 void Draw_ConsoleBackground (int lines)
 {
@@ -80,5 +144,10 @@ void Draw_FadeScreen (void)
 }
 void Draw_String (int x, int y, char *str)
 {
-
+	while (*str)
+	{
+		Draw_Character (x, y, *str);
+		str++;
+		x += 8;
+	}
 }
