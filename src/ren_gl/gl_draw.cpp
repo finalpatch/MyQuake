@@ -28,16 +28,29 @@ std::unordered_map<std::string, QpicTexture> qpicTextureCache;
 std::unordered_map<const qpic_t*, std::string> qpicTextureIndex;
 std::unique_ptr<Texture> fontTex;
 
+const char conbackName[] = "gfx/conback.lmp";
+
 void R_cachePicture(const char* name, const qpic_t* data)
 {
     auto i = qpicTextureCache.find(name);
     if (i == qpicTextureCache.end())
     {
         std::vector<uint32_t> rgbtex(data->width * data->height);
-        for (unsigned i = 0; i < rgbtex.size(); ++i)
+        if (strncmp(conbackName, name, sizeof(conbackName)) == 0)
         {
-            auto clridx = data->data[i];
-            rgbtex[i] = (clridx == TRANSPARENT_COLOR) ? 0 : vid_current_palette[clridx];
+            for (unsigned i = 0; i < rgbtex.size(); ++i)
+            {
+                auto clridx = data->data[i];
+                rgbtex[i] = (vid_current_palette[clridx] & 0xffffff00) | 0xA0;
+            }
+        }
+        else
+        {
+            for (unsigned i = 0; i < rgbtex.size(); ++i)
+            {
+                auto clridx = data->data[i];
+                rgbtex[i] = (clridx == TRANSPARENT_COLOR) ? 0 : vid_current_palette[clridx];
+            }
         }
         auto texture = std::make_unique<Texture>(GL_TEXTURE_2D, data->width, data->height, Texture::RGBA,
             GL_CLAMP_TO_EDGE, GL_NEAREST, GL_NEAREST, rgbtex.data());
@@ -82,8 +95,12 @@ void Draw_Init (void)
 }
 void Draw_Character (int x, int y, int num)
 {
+    num &= 0xff;
+
+    int ch = num & 0x7f;
+
     // don't draw invisible chars
-    if (num == ' ' || num == '\n' || num == '\t' || num == '\r' || num == '\f')
+    if (ch == ' ' || ch == '\n' || ch == '\t' || ch == '\r' || ch == '\f')
         return;
 
 	int row = num >> 4;
@@ -125,7 +142,7 @@ void Draw_TransPicTranslate (int x, int y, qpic_t *pic, byte *translation)
 }
 void Draw_ConsoleBackground (int lines)
 {
-    qpic_t* pic = Draw_CachePic((char*)"gfx/conback.lmp");
+    qpic_t* pic = Draw_CachePic((char*)conbackName);
     auto i = qpicTextureIndex.find(pic);
     if (i == qpicTextureIndex.end())
         return;

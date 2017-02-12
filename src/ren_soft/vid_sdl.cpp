@@ -62,8 +62,8 @@ void VID_ShiftPalette (unsigned char *palette)
 
 void VID_Init (unsigned char *palette)
 {
-    int initialWidth = 1920;
-    int initialHeight = 1080;
+    int initialWidth = 1280;
+    int initialHeight = 720;
 
     win = SDL_CreateWindow("Quake", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         initialWidth, initialHeight, SDL_WINDOW_RESIZABLE);
