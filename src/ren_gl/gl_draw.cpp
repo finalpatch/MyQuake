@@ -68,6 +68,7 @@ void Draw_Init (void)
     draw_disc = reinterpret_cast<qpic_t*>(W_GetLumpName (disc));
     draw_backtile = reinterpret_cast<qpic_t*>(W_GetLumpName (backtile));
 
+    // font texture
     std::vector<uint32_t> rgbtex(kCharWidth * kCharHeight * kCharRows * kCharCols);
     for (unsigned i = 0; i < rgbtex.size(); ++i)
     {
@@ -82,7 +83,7 @@ void Draw_Init (void)
 void Draw_Character (int x, int y, int num)
 {
     // don't draw invisible chars
-    if (num == ' ' || num == '\n' || num == '\t' || num == 'r' || num == '\f')
+    if (num == ' ' || num == '\n' || num == '\t' || num == '\r' || num == '\f')
         return;
 
 	int row = num >> 4;
@@ -124,7 +125,17 @@ void Draw_TransPicTranslate (int x, int y, qpic_t *pic, byte *translation)
 }
 void Draw_ConsoleBackground (int lines)
 {
-
+    qpic_t* pic = Draw_CachePic((char*)"gfx/conback.lmp");
+    auto i = qpicTextureIndex.find(pic);
+    if (i == qpicTextureIndex.end())
+        return;
+    auto j = qpicTextureCache.find(i->second);
+    if (j == qpicTextureCache.end())
+        return;
+    TextureBinding binding(*(j->second.tex), 0);
+    PictureRenderPass::getInstance().setup(0.0f, float(lines) / vid.height - 1.0f, 1.0f, 1.0f,
+        0.0f, 0.0f, 1.0f, 1.0f);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 void Draw_BeginDisc (void)
 {

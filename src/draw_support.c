@@ -47,7 +47,10 @@ qpic_t	*Draw_CachePic (char *path)
 	dat = Cache_Check (&pic->cache);
 
 	if (dat)
+	{
+		R_cachePicture(path, dat);
 		return dat;
+	}
 
 //
 // load the pic from disk
