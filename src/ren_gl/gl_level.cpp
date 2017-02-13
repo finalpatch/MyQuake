@@ -267,13 +267,35 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
 {
     _vao->bind();
 
-    DefaultRenderPass::getInstance().use();
+    if (!_diffuseTextureChains.empty())
     {
-        // bind the light map, and draw all normal walls
-        DefaultRenderPass::getInstance().setup(r_projectionMatrix, modelMatrix, r_viewMatrix,
-            _lightStyles.data(), {0, 0, 0, 0});
-        TextureBinding lightmapBinding(*_lightmap, DefaultRenderPass::kTextureUnitLight);
+        DefaultRenderPass::getInstance().use();
+        {
+            // bind the light map, and draw all normal walls
+            DefaultRenderPass::getInstance().setup(r_projectionMatrix, modelMatrix, r_viewMatrix,
+                _lightStyles.data(), {0, 0, 0, 0});
+            TextureBinding lightmapBinding(*_lightmap, DefaultRenderPass::kTextureUnitLight);
+            for (auto& textureChain: _diffuseTextureChains)
+            {
+                if (!textureChain.vertexes.empty())
+                {
+                    // bind diffuse map
+                    TextureBinding diffusemapBinding(textureChain.texture, DefaultRenderPass::kTextureUnitDiffuse);
+                    _idxBuf->update(textureChain.vertexes);
+                    glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
+                }
+            }
+        }
         for (auto& textureChain: _diffuseTextureChains)
+            textureChain.vertexes.clear();
+    }
+
+    // draw turb textures
+    if (!_turbulenceTextureChains.empty())
+    {
+        DefaultRenderPass::getInstance().setup(r_projectionMatrix, modelMatrix, r_viewMatrix,
+            _lightStyles.data(), {1.0, 1.0, 1.0, 0}, DefaultRenderPass::kFlagTurbulence);
+        for (auto& textureChain: _turbulenceTextureChains)
         {
             if (!textureChain.vertexes.empty())
             {
@@ -283,46 +305,31 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
                 glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
             }
         }
-    }
-
-    // draw turb textures
-    DefaultRenderPass::getInstance().setup(r_projectionMatrix, modelMatrix, r_viewMatrix,
-        _lightStyles.data(), {1.0, 1.0, 1.0, 0}, DefaultRenderPass::kFlagTurbulence);
-    for (auto& textureChain: _turbulenceTextureChains)
-    {
-        if (!textureChain.vertexes.empty())
-        {
-            // bind diffuse map
-            TextureBinding diffusemapBinding(textureChain.texture, DefaultRenderPass::kTextureUnitDiffuse);
-            _idxBuf->update(textureChain.vertexes);
-            glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
-        }
+        for (auto& textureChain: _turbulenceTextureChains)
+            textureChain.vertexes.clear();
     }        
 
     // draw sky textures
-    glm::vec3 eyePos = qvec2glm(r_origin);
-    SkyRenderPass::getInstance().use();
-    SkyRenderPass::getInstance().setup(r_projectionMatrix, r_viewMatrix, glm::vec4(eyePos, 1.0));
-    for (unsigned i = 0; i < _skyTextureChains.size(); ++i)
+    if (!_skyTextureChains.empty())
     {
-        auto& textureChain = _skyTextureChains[i];
-        if (!textureChain.vertexes.empty())
+        glm::vec3 eyePos = qvec2glm(r_origin);
+        SkyRenderPass::getInstance().use();
+        SkyRenderPass::getInstance().setup(r_projectionMatrix, r_viewMatrix, glm::vec4(eyePos, 1.0));
+        for (unsigned i = 0; i < _skyTextureChains.size(); ++i)
         {
-            // bind diffuse map
-            TextureBinding skyBinding0(textureChain.texture, SkyRenderPass::kTextureUnitSky0);
-            TextureBinding skyBinding1(_skyBackgroundTextures[i], SkyRenderPass::kTextureUnitSky1);
-            _idxBuf->update(textureChain.vertexes);
-            glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
+            auto& textureChain = _skyTextureChains[i];
+            if (!textureChain.vertexes.empty())
+            {
+                // bind diffuse map
+                TextureBinding skyBinding0(textureChain.texture, SkyRenderPass::kTextureUnitSky0);
+                TextureBinding skyBinding1(_skyBackgroundTextures[i], SkyRenderPass::kTextureUnitSky1);
+                _idxBuf->update(textureChain.vertexes);
+                glDrawElements(GL_TRIANGLES, textureChain.vertexes.size(), GL_UNSIGNED_INT, nullptr);
+            }
         }
+        for (auto& textureChain: _skyTextureChains)
+            textureChain.vertexes.clear();
     }
-
-    // all done, clear texture chains for the next batch
-    for (auto& textureChain: _diffuseTextureChains)
-        textureChain.vertexes.clear();
-    for (auto& textureChain: _turbulenceTextureChains)
-        textureChain.vertexes.clear();
-    for (auto& textureChain: _skyTextureChains)
-        textureChain.vertexes.clear();
 }
 
 void LevelRenderer::animateLight()

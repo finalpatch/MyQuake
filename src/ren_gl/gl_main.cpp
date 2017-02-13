@@ -25,7 +25,6 @@ extern uint32_t vid_current_palette[256];
  * refactor texture loading
  * Fullbrights
  * Post processing
- * 2D
  */
 
 std::unique_ptr<LevelRenderer> levelRenderer;
