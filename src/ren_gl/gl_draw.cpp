@@ -111,7 +111,7 @@ void Draw_Character (int x, int y, int num)
     int ch = num & 0x7f;
 
     // don't draw invisible chars
-    if (ch == ' ' || ch == '\n' || ch == '\t' || ch == '\r' || ch == '\f')
+    if (ch == ' ')
         return;
 
     charsToDraw.emplace_back(x, y, num);
