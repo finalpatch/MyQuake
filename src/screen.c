@@ -912,6 +912,8 @@ void SCR_UpdateScreen (void)
 		M_Draw ();
 	}
 
+	Draw_Commit();
+
 	V_UpdatePalette ();
 
 //

@@ -23,10 +23,21 @@ struct QpicTexture
     std::unique_ptr<Texture> tex;
 };
 
+struct DrawChar
+{
+    int x;
+    int y;
+    int num;
+    DrawChar(int _x, int _y, int _num) :
+        x(_x), y(_y), num(_num)
+    {}
+};
+
 std::unique_ptr<VertexArray> pictureVao;
 std::unordered_map<std::string, QpicTexture> qpicTextureCache;
 std::unordered_map<const qpic_t*, std::string> qpicTextureIndex;
 std::unique_ptr<Texture> fontTex;
+std::vector<DrawChar> charsToDraw;
 
 const char conbackName[] = "gfx/conback.lmp";
 
@@ -103,16 +114,7 @@ void Draw_Character (int x, int y, int num)
     if (ch == ' ' || ch == '\n' || ch == '\t' || ch == '\r' || ch == '\f')
         return;
 
-	int row = num >> 4;
-	int col = num & 15;
-
-    TextureBinding binding(*fontTex, 0);
-    PictureRenderPass::getInstance().setup(
-        float(x)/vid.width, float(y)/vid.height,
-        float(kCharWidth)/vid.width, float(kCharHeight)/vid.height,
-        float(col) / kCharCols, float(row) / kCharRows, 
-        1.0f / kCharCols, 1.0f / kCharRows);
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    charsToDraw.emplace_back(x, y, num);
 }
 void Draw_DebugChar (char num)
 {
@@ -182,4 +184,22 @@ void Draw_String (int x, int y, char *str)
 		str++;
 		x += 8;
 	}
+}
+
+void Draw_Commit()
+{
+    TextureBinding binding(*fontTex, 0);
+
+    for (const auto& dc: charsToDraw)
+    {
+        int row = dc.num >> 4;
+        int col = dc.num & 15;
+        PictureRenderPass::getInstance().setup(
+            float(dc.x)/vid.width, float(dc.y)/vid.height,
+            float(kCharWidth)/vid.width, float(kCharHeight)/vid.height,
+            float(col) / kCharCols, float(row) / kCharRows,
+            1.0f / kCharCols, 1.0f / kCharRows);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    }
+    charsToDraw.clear();
 }
