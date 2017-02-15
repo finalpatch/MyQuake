@@ -50,7 +50,9 @@ void VID_Init (unsigned char *palette)
 
     for(int i = 0; i < 256; ++i)
     {
-        vid_current_palette[i] =  0xff   |
+        // a == 0 means full bright color
+        uint8_t a = (i >= 224) ? 0 : 0xff;
+        vid_current_palette[i] =  a      |
             (uint32_t(palette[2]) << 8)  |
             (uint32_t(palette[1]) << 16) |
             (uint32_t(palette[0]) << 24) ;

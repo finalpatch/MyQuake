@@ -37,7 +37,7 @@ in VS_OUT
 void main(void)
 {
     vec4 lightValues = texture(lightmap, fs_in.lightTexCoord);
-    vec4 l = vec4(vec3(dot(lightValues, fs_in.lightScales)) + uniforms.ambientLight.rgb, 1.0);
+    vec3 l = vec3(dot(lightValues, fs_in.lightScales)) + uniforms.ambientLight.rgb;
 
     for (uint i = 0u; i < uniforms.ndlights; ++i)
     {
@@ -56,5 +56,8 @@ void main(void)
     {
         uv += vec2(sin(uniforms.globalTime + uv.y*2.0), cos(uniforms.globalTime + uv.x*2.0)) / 8.0;
     }
-    color = texture(diffusemap, uv) * l;
+    vec4 texColor = texture(diffusemap, uv);
+    vec3 fullbright = vec3(1.0 - texColor.a);
+    l = max(fullbright, l);
+    color = vec4(texColor.rgb * l, 1.0);
 }

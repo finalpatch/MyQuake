@@ -22,7 +22,6 @@ extern uint32_t vid_current_palette[256];
 
 /*
  TODO:
- * Fullbrights
  * Post processing
  */
 
