@@ -27,7 +27,6 @@ out vec4 color;
 
 in VS_OUT
 {
-    vec4 color;
     vec2 lightTexCoord;
     vec2 diffuseTexCoord;
     vec4 lightScales;
@@ -46,7 +45,7 @@ void main(void)
         float radius = uniforms.dlights[i].w;
         vec3 lightRay = lightPos - fs_in.worldPos;
         float dist = length(lightRay);
-        float distScale = (radius / 255.0) * 10000 / (dist * dist);
+        float distScale = (radius / 255.0) * 20000 / (dist * dist);
         float intensity = dot(normalize(lightRay), fs_in.normal);
         intensity *= distScale;
         l += clamp(intensity, 0.0, 1.0);
@@ -56,7 +55,6 @@ void main(void)
     if ((uniforms.flags & FLAG_TURBULENCE) != 0u)
     {
         uv += vec2(sin(uniforms.globalTime + uv.y*2.0), cos(uniforms.globalTime + uv.x*2.0)) / 8.0;
-        l *= 0.5;
     }
-    color = texture(diffusemap, uv) * l * 2.0;
+    color = texture(diffusemap, uv) * l;
 }

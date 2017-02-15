@@ -160,7 +160,7 @@ void ModelRenderer::render(const entity_s* entity, float ambientLight)
     auto angles = entity->angles;
 
     if (_fullBrightObject)
-        ambientLight = 0.5;
+        ambientLight = 1.0;
 
     DefaultRenderPass::getInstance().use();
 

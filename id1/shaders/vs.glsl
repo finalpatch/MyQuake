@@ -30,7 +30,6 @@ layout (location = 5) in uint vtxflags;
 
 out VS_OUT
 {
-    vec4 color;
     vec2 lightTexCoord;
     vec2 diffuseTexCoord;
     vec4 lightScales;
@@ -40,15 +39,8 @@ out VS_OUT
 
 void main(void)
 {
-    vec3 l1 = normalize(vec3(-0.2, 0.5, 1));
-    vec3 l2 = normalize(vec3(0.3, 0.7, -0.5));
-    mat3 r = mat3(uniforms.model);
-    vec3 n = normalize(r * normal);
-    float l = max(0, dot(n, l1))*0.7 + max(0, dot(n, l2))*0.5;
-
     mat4 t = uniforms.projection * uniforms.view * uniforms.model;
     gl_Position = t * position;
-    vs_out.color = vec4(l, l, l, 1.0);
     vs_out.lightTexCoord = lightTexCoord;
     if (((uniforms.flags & FLAG_BACKSIDE) != 0u) && ((vtxflags & VFLAG_ONSEAM) != 0u))
         vs_out.diffuseTexCoord = diffuseTexCoord + vec2(0.5, 0.0);
