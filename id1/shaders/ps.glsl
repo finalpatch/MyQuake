@@ -45,10 +45,10 @@ void main(void)
         float radius = uniforms.dlights[i].w;
         vec3 lightRay = lightPos - fs_in.worldPos;
         float dist = length(lightRay);
-        float distScale = (radius / 255.0) * 20000 / (dist * dist);
         float intensity = dot(normalize(lightRay), fs_in.normal);
+        float distScale = (radius / 255.0) * 20000 / (dist * dist);
         intensity *= distScale;
-        l += clamp(intensity, 0.0, 1.0);
+        l += clamp(intensity, 0.0, 1.0); // dynamic light can go up to 100% above base
     }
 
     vec2 uv = fs_in.diffuseTexCoord;
@@ -57,7 +57,9 @@ void main(void)
         uv += vec2(sin(uniforms.globalTime + uv.y*2.0), cos(uniforms.globalTime + uv.x*2.0)) / 8.0;
     }
     vec4 texColor = texture(diffusemap, uv);
-    vec3 fullbright = vec3(1.0 - texColor.a);
-    l = max(fullbright, l);
+    if (texColor.a == 0.0)
+        l = vec3(1.0);
+    else
+        l *= 2.0; // lightmaps are 0-200%
     color = vec4(texColor.rgb * l, 1.0);
 }
