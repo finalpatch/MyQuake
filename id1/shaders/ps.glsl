@@ -55,9 +55,10 @@ void main(void)
     if ((uniforms.flags & FLAG_TURBULENCE) != 0u)
     {
         uv += vec2(sin(uniforms.globalTime + uv.y*2.0), cos(uniforms.globalTime + uv.x*2.0)) / 8.0;
+        l *= 0.5; // offset the * 2.0 later, because turbulence faces don't use lightmaps
     }
     vec4 texColor = texture(diffusemap, uv);
-    if (texColor.a == 0.0)
+    if (texColor.a == 0.0) // full bright
         l = vec3(1.0);
     else
         l *= 2.0; // lightmaps are 0-200%
