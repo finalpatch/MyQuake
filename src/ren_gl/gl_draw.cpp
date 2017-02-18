@@ -1,5 +1,6 @@
 #include <unordered_map>
 #include "gl_renderpass.h"
+#include "gl_local.h"
 
 extern "C"
 {
@@ -10,12 +11,12 @@ qpic_t		*draw_disc;
 qpic_t		*draw_backtile;
 }
 
+extern int sb_updates;
+
 const static int kCharWidth = 8;
 const static int kCharHeight = 8;
 const static int kCharRows = 16;
 const static int kCharCols = 16;
-
-extern uint32_t vid_current_palette[256];
 
 struct QpicTexture
 {
@@ -40,6 +41,15 @@ std::unique_ptr<Texture> fontTex;
 std::vector<DrawChar> charsToDraw;
 
 const char conbackName[] = "gfx/conback.lmp";
+
+void R_BeginPictures()
+{
+    sb_updates = 0; // always redraw sbar
+    glEnable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    PictureRenderPass::getInstance().use();
+    pictureVao->bind();
+}
 
 void R_cachePicture(const char* name, const qpic_t* data)
 {

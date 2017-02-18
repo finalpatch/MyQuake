@@ -18,10 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "gl_local.h"
+
 extern "C"
 {
 #include "quakedef.h"
-#include "r_local.h"
 
 #define NUMVERTEXNORMALS	162
 extern	float	r_avertexnormals[NUMVERTEXNORMALS][3];
@@ -40,7 +41,7 @@ particle_t	*active_particles, *free_particles;
 particle_t	*particles;
 int			r_numparticles;
 
-vec3_t			r_pright, r_pup, r_ppn;
+vec3_t		r_pright, r_pup, r_ppn;
 
 
 /*
@@ -594,7 +595,7 @@ void R_RocketTrail (vec3_t start, vec3_t end, int type)
 R_DrawParticles
 ===============
 */
-void R_DrawParticles (void)
+void R_DrawParticles (const Camera& camera)
 {
 	particle_t		*p, *kill;
 	float			grav;
@@ -604,7 +605,7 @@ void R_DrawParticles (void)
 	float			dvel;
 	float			frametime;
 	
-	D_StartParticles ();
+	GL_StartParticles ();
 
 	// VectorCopy (vright, r_pright);
 	// VectorCopy (vup, r_pup);
@@ -645,7 +646,7 @@ void R_DrawParticles (void)
 			break;
 		}
 
-		D_DrawParticle (p);
+		GL_DrawParticle (p);
 
 		p->org[0] += p->vel[0]*frametime;
 		p->org[1] += p->vel[1]*frametime;
@@ -705,6 +706,6 @@ void R_DrawParticles (void)
 		}
 	}
 
-	D_EndParticles ();
+	GL_EndParticles (camera);
 }
 

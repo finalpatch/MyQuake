@@ -12,10 +12,6 @@ float r_avertexnormals[][3] = {
     #include "anorms.h"
 };
 
-extern uint32_t vid_current_palette[256];
-extern glm::mat4 r_projectionMatrix;
-extern glm::mat4 r_viewMatrix;
-
 static void addVertices(const mdl_t* modelDesc, const trivertx_t* scaledVertices, const stvert_t* stverts,
     std::vector<VertexAttr>& vertexData)
 {
@@ -152,7 +148,7 @@ ModelRenderer::~ModelRenderer()
 {
 }
 
-void ModelRenderer::render(const entity_s* entity, float ambientLight)
+void ModelRenderer::render(const Camera& camera, const entity_s* entity, float ambientLight)
 {
     auto frameId = entity->frame;
     auto time = entity->syncbase + cl.time;
@@ -173,7 +169,7 @@ void ModelRenderer::render(const entity_s* entity, float ambientLight)
         ;
 
     // clip agains view frustum
-    auto mvp = r_projectionMatrix * r_viewMatrix * model;
+    auto mvp = camera.vpMat * model;
     auto planes = extractViewPlanes(mvp);
     auto box = qbox2glm(entity->model->mins, entity->model->maxs);
     if (!intersectFrustumAABB(planes, box))
@@ -186,14 +182,14 @@ void ModelRenderer::render(const entity_s* entity, float ambientLight)
 
     TextureBinding diffusemapBinding(_skins[0]->getTexture(time), DefaultRenderPass::kTextureUnitDiffuse);
     // front side
-    DefaultRenderPass::getInstance().setup(r_projectionMatrix, model, r_viewMatrix,
+    DefaultRenderPass::getInstance().setup(camera.projMat, model, camera.viewMat,
         nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, 0);
     _vao->indexBuffer(*_frontSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _frontSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);
 
     // back side
     DefaultRenderPass::getInstance().use(); // need this to make it work in vmware, sigh
-    DefaultRenderPass::getInstance().setup(r_projectionMatrix, model, r_viewMatrix,
+    DefaultRenderPass::getInstance().setup(camera.projMat, model, camera.viewMat,
         nullLightStyles, {ambientLight, ambientLight, ambientLight, 1.0}, DefaultRenderPass::kFlagBackSide);
     _vao->indexBuffer(*_backSideIdxBuf);
     glDrawElementsBaseVertex(GL_TRIANGLES, _backSideIdxBuf->size(), GL_UNSIGNED_SHORT, nullptr, offset);

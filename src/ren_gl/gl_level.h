@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gl_renderpass.h"
+#include "gl_local.h"
 
 struct model_s;
 struct mleaf_s;
@@ -18,8 +19,8 @@ public:
     void loadBrushModel(const model_s* levelModel);
     void build();
 
-    void renderWorld(const entity_s* entity);
-    void renderSubmodel(const entity_s* entity);
+    void renderWorld(const Camera& camera, const entity_s* entity);
+    void renderSubmodel(const Camera& camera, const entity_s* entity);
 
     float lightPoint (const float* p);
 private:
@@ -58,10 +59,10 @@ private:
     void animateLight();
     void markLeaves (mleaf_s* viewleaf);
     void storeEfrags (efrag_s **ppefrag);
-    void walkBspTree(mnode_s *node, const entity_s* entity);
+    void walkBspTree(const Camera& camera, mnode_s *node, const entity_s* entity);
     int recursiveLightPoint (mnode_s* node, const float* start, const float* end);
     void emitSurface(const msurface_s& surf, int frame);
-    void renderTextureChains(const glm::mat4& modelMatrix);
+    void renderTextureChains(const Camera& camera, const glm::mat4& modelMatrix);
 
     void loadTexture(texture_s* texture);
     void loadSkyTexture(texture_s* texture);

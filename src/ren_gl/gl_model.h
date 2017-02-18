@@ -2,6 +2,7 @@
 
 #include "gl_helpers.h"
 #include "gl_renderpass.h"
+#include "gl_local.h"
 
 struct model_s;
 struct entity_s;
@@ -81,7 +82,7 @@ public:
     explicit ModelRenderer(const model_s* entityModel);
     virtual ~ModelRenderer();
 
-    void render(const entity_s* entity, float ambientLight);
+    void render(const Camera& camera, const entity_s* entity, float ambientLight);
 
 private:
     std::unique_ptr<VertexArray> _vao;

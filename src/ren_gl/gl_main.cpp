@@ -3,6 +3,7 @@
 
 #include "gl_model.h"
 #include "gl_level.h"
+#include "gl_local.h"
 
 extern "C"
 {
@@ -12,13 +13,9 @@ refdef_t r_refdef;
 vec3_t	r_origin, vpn, vright, vup;
 texture_s* r_notexture_mip = nullptr;
 qboolean r_cache_thrash = qfalse;
-
-void R_InitParticles ();
-void R_ClearParticles();
-void R_DrawParticles ();
 }
 
-extern uint32_t vid_current_palette[256];
+extern cvar_t scr_fov;
 
 /*
  TODO:
@@ -28,16 +25,9 @@ extern uint32_t vid_current_palette[256];
 std::unique_ptr<LevelRenderer> levelRenderer;
 std::vector<std::unique_ptr<ModelRenderer>> modelRenderers;
 
-extern std::unique_ptr<VertexArray> pictureVao;
-
-extern int sb_updates;
-extern cvar_t scr_fov;
-glm::mat4 r_projectionMatrix;
-glm::mat4 r_viewMatrix;
-
-void drawLevel();
-void drawEntities();
-void drawWeapon();
+void drawLevel(const Camera& camera);
+void drawEntities(const Camera& camera);
+void drawWeapon(const Camera& camera);
 
 void R_Init (void)
 {
@@ -71,14 +61,8 @@ void R_RenderView (void)
     glDisable(GL_BLEND);
 
     // camera
-    r_projectionMatrix = glm::perspective(
-        glm::radians(scr_fov.value * 0.75f), // y fov
-        (float)vid.width / vid.height,       // aspect ratio
-        1.0f,                                // near
-        5000.0f);                            // far
-    glm::vec3 eyePos = qvec2glm(r_origin);
-    glm::vec3 eyeDirection = qvec2glm(vpn);
-    r_viewMatrix = glm::lookAt(eyePos, eyePos + eyeDirection, qvec2glm(vup));
+    Camera camera(qvec2glm(r_origin), qvec2glm(vpn), qvec2glm(vup),
+        glm::radians(scr_fov.value * 0.75f), (float)vid.width / vid.height);
 
     // clear buffers
     static GLfloat bgColor[] = {0.27, 0.53, 0.71, 1.0};
@@ -86,17 +70,13 @@ void R_RenderView (void)
     glClearBufferfv(GL_COLOR, 0, bgColor);
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
 
-    drawLevel();
-    drawEntities();
-    drawWeapon();
-    R_DrawParticles();
+    drawLevel(camera);
+    drawEntities(camera);
+    drawWeapon(camera);
+    R_DrawParticles(camera);
 
     // get ready for 2D
-    sb_updates = 0; // always redraw sbar
-    glEnable(GL_BLEND);
-    glDisable(GL_DEPTH_TEST);
-    PictureRenderPass::getInstance().use();
-    pictureVao->bind();
+    R_BeginPictures();
 }
 
 void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
@@ -145,7 +125,7 @@ struct ParticleVertex
 std::vector<ParticleVertex> activeParticles;
 std::unique_ptr<VertexArray> particleVao;
 
-void D_StartParticles (void)
+void GL_StartParticles ()
 {
     activeParticles.clear();
 
@@ -159,7 +139,7 @@ void D_StartParticles (void)
     }
 }
 
-void D_DrawParticle (particle_t *pparticle)
+void GL_DrawParticle (particle_s* pparticle)
 {
     activeParticles.emplace_back(ParticleVertex{{
             pparticle->org[0], pparticle->org[2], -pparticle->org[1]
@@ -167,7 +147,7 @@ void D_DrawParticle (particle_t *pparticle)
         vid_current_palette[uint8_t(pparticle->color)]});
 }
 
-void D_EndParticles (void)
+void GL_EndParticles (const Camera& camera)
 {
     if (activeParticles.empty())
         return;
@@ -178,7 +158,7 @@ void D_EndParticles (void)
 
     glm::vec3 eyePos = qvec2glm(r_origin);
     ParticleRenderPass::getInstance().use();
-    ParticleRenderPass::getInstance().setup(r_projectionMatrix, r_viewMatrix, glm::vec4(eyePos, 1.0));
+    ParticleRenderPass::getInstance().setup(camera.projMat, camera.viewMat, glm::vec4(eyePos, 1.0));
     glDrawArrays(GL_POINTS, 0, particleBuffer.size());
 }
 
@@ -215,12 +195,12 @@ void R_SetVrect (vrect_t *pvrect, vrect_t *pvrectin, int lineadj)
 
 // ************************************************************************
 
-void drawLevel()
+void drawLevel(const Camera& camera)
 {
-    levelRenderer->renderWorld(&cl_entities[0]);
+    levelRenderer->renderWorld(camera, &cl_entities[0]);
 }
 
-void drawEntities()
+void drawEntities(const Camera& camera)
 {
     for (int i = 0; i < cl_numvisedicts; ++i)
     {
@@ -237,7 +217,7 @@ void drawEntities()
                 if (model == cl.worldmodel)
                     break;//levelRenderer->renderWorld(currentEntity);
                 else
-                    levelRenderer->renderSubmodel(currentEntity);
+                    levelRenderer->renderSubmodel(camera, currentEntity);
             }
             break;
 		case mod_sprite:
@@ -247,7 +227,7 @@ void drawEntities()
                 auto model = currentEntity->model;
                 auto& modelRenderer = modelRenderers[model->rendererData];
                 float ambientLight = levelRenderer->lightPoint(currentEntity->origin);
-                modelRenderer->render(currentEntity, ambientLight);
+                modelRenderer->render(camera, currentEntity, ambientLight);
             }
             break;
         default:
@@ -256,7 +236,7 @@ void drawEntities()
     }
 }
 
-void drawWeapon()
+void drawWeapon(const Camera& camera)
 {
     auto entity = &cl.viewent;
     auto model = entity->model;
@@ -266,7 +246,7 @@ void drawWeapon()
     // allways give some light on gun
     float ambientLight = std::max(0.1f, levelRenderer->lightPoint(entity->origin));
     glDepthFunc(GL_ALWAYS);
-    renderer->render(entity, ambientLight);
+    renderer->render(camera, entity, ambientLight);
     glDepthFunc(GL_LESS);
-    renderer->render(entity, ambientLight);
+    renderer->render(camera, entity, ambientLight);
 }

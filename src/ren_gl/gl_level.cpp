@@ -9,10 +9,6 @@ extern "C"
 const static GLuint kLightmapAtlasSize = 1024;
 const static GLuint kLightmapAtlasPadding = 1;
 
-extern uint32_t vid_current_palette[256];
-extern glm::mat4 r_projectionMatrix;
-extern glm::mat4 r_viewMatrix;
-
 LevelRenderer::LevelRenderer() :
     _lightStyles(MAX_LIGHTSTYLES),
     _lightmapBuilder(std::make_unique<TextureAtlasBuilder<Texture::RGBA>>(kLightmapAtlasSize, kLightmapAtlasPadding))
@@ -195,7 +191,7 @@ void LevelRenderer::build()
     _lightmapBuilder.reset();
 }
 
-void LevelRenderer::renderSubmodel(const entity_s* entity)
+void LevelRenderer::renderSubmodel(const Camera& camera, const entity_s* entity)
 {
     const model_s* submodel = entity->model;
     const float* origin = entity->origin;
@@ -209,7 +205,7 @@ void LevelRenderer::renderSubmodel(const entity_s* entity)
         * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1});
 
     // clip agains view frustum
-    auto mvp = r_projectionMatrix * r_viewMatrix * model;
+    auto mvp = camera.vpMat * model;
     auto planes = extractViewPlanes(mvp);
     auto box = qbox2glm(entity->model->mins, entity->model->maxs);
     if (!intersectFrustumAABB(planes, box))
@@ -220,17 +216,17 @@ void LevelRenderer::renderSubmodel(const entity_s* entity)
         const auto& surf = submodel->surfaces[submodel->firstmodelsurface + i];
         emitSurface(surf, entity->frame);
     }
-    renderTextureChains(model);
+    renderTextureChains(camera, model);
 }
 
-void LevelRenderer::renderWorld(const entity_s* entity)
+void LevelRenderer::renderWorld(const Camera& camera, const entity_s* entity)
 {
     animateLight();
     _framecount++;
 	auto viewleaf = Mod_PointInLeaf(r_origin, cl.worldmodel);
     markLeaves(viewleaf);
-    walkBspTree(cl.worldmodel->nodes, entity);
-    renderTextureChains({});
+    walkBspTree(camera, cl.worldmodel->nodes, entity);
+    renderTextureChains(camera, {});
 }
 
 void LevelRenderer::emitSurface(const msurface_s& surf, int frame)
@@ -263,7 +259,7 @@ void LevelRenderer::emitSurface(const msurface_s& surf, int frame)
     }
 }
 
-void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
+void LevelRenderer::renderTextureChains(const Camera& camera, const glm::mat4& modelMatrix)
 {
     _vao->bind();
 
@@ -272,7 +268,7 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
         DefaultRenderPass::getInstance().use();
         {
             // bind the light map, and draw all normal walls
-            DefaultRenderPass::getInstance().setup(r_projectionMatrix, modelMatrix, r_viewMatrix,
+            DefaultRenderPass::getInstance().setup(camera.projMat, modelMatrix, camera.viewMat,
                 _lightStyles.data(), {0, 0, 0, 0});
             TextureBinding lightmapBinding(*_lightmap, DefaultRenderPass::kTextureUnitLight);
             for (auto& textureChain: _diffuseTextureChains)
@@ -293,7 +289,7 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
     // draw turb textures
     if (!_turbulenceTextureChains.empty())
     {
-        DefaultRenderPass::getInstance().setup(r_projectionMatrix, modelMatrix, r_viewMatrix,
+        DefaultRenderPass::getInstance().setup(camera.projMat, modelMatrix, camera.viewMat,
             _lightStyles.data(), {1.0, 1.0, 1.0, 0}, DefaultRenderPass::kFlagTurbulence);
         for (auto& textureChain: _turbulenceTextureChains)
         {
@@ -312,9 +308,8 @@ void LevelRenderer::renderTextureChains(const glm::mat4& modelMatrix)
     // draw sky textures
     if (!_skyTextureChains.empty())
     {
-        glm::vec3 eyePos = qvec2glm(r_origin);
         SkyRenderPass::getInstance().use();
-        SkyRenderPass::getInstance().setup(r_projectionMatrix, r_viewMatrix, glm::vec4(eyePos, 1.0));
+        SkyRenderPass::getInstance().setup(camera.projMat, camera.viewMat, glm::vec4(camera.eyePos, 1.0));
         for (unsigned i = 0; i < _skyTextureChains.size(); ++i)
         {
             auto& textureChain = _skyTextureChains[i];
@@ -410,7 +405,7 @@ void LevelRenderer::storeEfrags (efrag_s **ppefrag)
 	}
 }
 
-void LevelRenderer::walkBspTree(mnode_s *node, const entity_s* entity)
+void LevelRenderer::walkBspTree(const Camera& camera, mnode_s *node, const entity_s* entity)
 {
 	if (node->contents == CONTENTS_SOLID)
 		return;		// solid
@@ -419,8 +414,7 @@ void LevelRenderer::walkBspTree(mnode_s *node, const entity_s* entity)
 		return;
 
     // clip agains view frustum
-    auto mvp = r_projectionMatrix * r_viewMatrix;
-    auto planes = extractViewPlanes(mvp);
+    auto planes = extractViewPlanes(camera.vpMat);
     auto box = qbox2glm(node->minmaxs, node->minmaxs+3);
     if (!intersectFrustumAABB(planes, box))
         return;
@@ -455,7 +449,7 @@ void LevelRenderer::walkBspTree(mnode_s *node, const entity_s* entity)
         int side = (dot >= 0) ? 0 : 1;
 
         // visit near
-        walkBspTree(node->children[side], entity);
+        walkBspTree(camera, node->children[side], entity);
 
         // emit marked polygons
         for (int i = 0; i < node->numsurfaces; ++i)
@@ -468,7 +462,7 @@ void LevelRenderer::walkBspTree(mnode_s *node, const entity_s* entity)
         }
 
         // visit far
-        walkBspTree(node->children[!side], entity);
+        walkBspTree(camera, node->children[!side], entity);
     }
 }
 
