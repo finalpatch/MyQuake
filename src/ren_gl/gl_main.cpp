@@ -169,11 +169,15 @@ void R_PushDlights (void)
     {
         if (cl_dlights[i].die <= cl.time || !cl_dlights[i].radius)
             continue;
+        // adjust decay for gl renderer
+        float radius = cl_dlights[i].radius;
+        if (radius > 200)
+            radius = 350.0 - (350.0 - radius) * 2.0; // double the decay
         dlightBuf.insert(dlightBuf.end(), {
             cl_dlights[i].origin[0],
             cl_dlights[i].origin[2],
             -cl_dlights[i].origin[1],
-            cl_dlights[i].radius});
+            radius});
     }
     DefaultRenderPass::getInstance().updateDLights(dlightBuf.data(), dlightBuf.size()/4);
 }

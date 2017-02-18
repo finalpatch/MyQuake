@@ -46,7 +46,7 @@ void main(void)
         vec3 lightRay = lightPos - fs_in.worldPos;
         float dist = length(lightRay);
         float intensity = dot(normalize(lightRay), fs_in.normal);
-        float distScale = (radius / 255.0) * 20000 / (dist * dist);
+        float distScale = 0.25 * radius * radius / (dist * dist);
         intensity *= distScale;
         l += clamp(intensity, 0.0, 1.0); // dynamic light can go up to 100% above base
     }

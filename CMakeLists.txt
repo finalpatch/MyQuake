@@ -36,3 +36,12 @@ target_link_libraries(${PROJECT_NAME}
   ren_gl
   ${SDL2_LIBRARIES}
   ${SDL2_MIXER_LIB})
+
+# software render executable
+aux_source_directory(src SRC_LIST)
+add_executable(${PROJECT_NAME}_soft ${SRC_LIST})
+
+target_link_libraries(${PROJECT_NAME}_soft
+  ren_soft
+  ${SDL2_LIBRARIES}
+  ${SDL2_MIXER_LIB})
