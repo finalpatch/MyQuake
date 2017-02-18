@@ -54,7 +54,7 @@ void main(void)
     vec2 uv = fs_in.diffuseTexCoord;
     if ((uniforms.flags & FLAG_TURBULENCE) != 0u)
     {
-        uv += vec2(sin(uniforms.globalTime + uv.y*2.0), cos(uniforms.globalTime + uv.x*2.0)) / 8.0;
+        uv += vec2(sin(uniforms.globalTime + uv.y*4.0), cos(uniforms.globalTime + uv.x*4.0)) / 8.0;
         l *= 0.5; // offset the * 2.0 later, because turbulence faces don't use lightmaps
     }
     vec4 texColor = texture(diffusemap, uv);
