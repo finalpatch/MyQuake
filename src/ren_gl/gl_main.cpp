@@ -65,7 +65,7 @@ void R_RenderView (void)
         glm::radians(scr_fov.value * 0.75f), (float)vid.width / vid.height);
 
     // clear buffers
-    static GLfloat bgColor[] = {0.27, 0.53, 0.71, 1.0};
+    const static GLfloat bgColor[] = {0.0, 0.0, 0.0, 1.0};
     glViewport(0, 0, vid.width, vid.height);
     glClearBufferfv(GL_COLOR, 0, bgColor);
     glClearBufferfi(GL_DEPTH_STENCIL, 0, 1.0, 0);
