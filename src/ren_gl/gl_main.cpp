@@ -43,6 +43,9 @@ void R_Init (void)
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    // for z-fighting between brush models and world
+    glPolygonOffset(1.0, 1.0);
+
     R_InitParticles();
 }
 
@@ -207,6 +210,7 @@ void drawLevel(const Camera& camera)
 
 void drawEntities(const Camera& camera)
 {
+    glEnable(GL_POLYGON_OFFSET_FILL);
     for (int i = 0; i < cl_numvisedicts; ++i)
     {
         auto currentEntity = cl_visedicts[i];
@@ -239,6 +243,7 @@ void drawEntities(const Camera& camera)
             break;
         }
     }
+    glDisable(GL_POLYGON_OFFSET_FILL);
 }
 
 void drawWeapon(const Camera& camera)
