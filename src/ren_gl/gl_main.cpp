@@ -20,6 +20,7 @@ extern cvar_t scr_fov;
 /*
  TODO:
  * Post processing
+ * Sprite models
  */
 
 std::unique_ptr<LevelRenderer> levelRenderer;
