@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.fs": "fsharp",
         "vector": "cpp",
         "VECTOR": "cpp",
         "MEMORY": "cpp",
@@ -42,6 +43,23 @@
         "*hpp*hpp*hpp*hppcstdio": "cpp",
         "STRING": "cpp",
         "*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*H*H*TCC*TCC*H*H*H*H*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*hpp*TCC*TCC*TCC*hpp*hppDEQUE": "cpp",
-        "DEQUE": "cpp"
+        "DEQUE": "cpp",
+        "clocale": "cpp",
+        "cstdarg": "cpp",
+        "cstdio": "cpp",
+        "atomic": "cpp",
+        "*.tcc": "cpp",
+        "chrono": "cpp",
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "exception": "cpp",
+        "iosfwd": "cpp",
+        "limits": "cpp",
+        "mutex": "cpp",
+        "ratio": "cpp",
+        "stdexcept": "cpp",
+        "string_view": "cpp",
+        "system_error": "cpp",
+        "thread": "cpp"
     }
 }

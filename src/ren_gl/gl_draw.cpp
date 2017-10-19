@@ -18,6 +18,14 @@ const static int kCharHeight = 8;
 const static int kCharRows = 16;
 const static int kCharCols = 16;
 
+/* TODO: Batch all 2d images and text
+ * 
+ * Put all 2d images in texture atlas
+ * Bind texture atlas to texture unit 0
+ * Bind font texture to texture unit 1
+ * One draw call draws all 2d elements
+ */
+
 struct QpicTexture
 {
     const qpic_t* ptr;
