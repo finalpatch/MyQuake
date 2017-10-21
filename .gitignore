@@ -3,3 +3,5 @@ id1/*.pak
 id1/music
 id1/autoexec.cfg
 id1/config.cfg
+.codelite
+cmake-build-Debug
