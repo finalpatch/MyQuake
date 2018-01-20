@@ -1,6 +1,10 @@
 project(myquake)
 cmake_minimum_required(VERSION 3.0)
 
+if (MINGW)
+  set(CMAKE_SH CMAKE_SH-NOTFOUND)
+endif()
+
 # for VS code cmake tools
 include(CMakeToolsHelpers OPTIONAL)
 
