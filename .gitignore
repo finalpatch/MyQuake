@@ -5,3 +5,6 @@ id1/autoexec.cfg
 id1/config.cfg
 .codelite
 cmake-build-Debug
+/.vscode
+/MyQuake.workspace
+/MyQuake.project

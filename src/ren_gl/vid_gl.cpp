@@ -59,7 +59,7 @@ void VID_Init (unsigned char *palette)
         palette += 3;
     }
 
-    glbinding::Binding::initialize();
+    glbinding::Binding::initialize(nullptr);
 }
 
 void VID_Shutdown (void)
