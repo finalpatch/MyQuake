@@ -162,10 +162,10 @@ void ModelRenderer::render(const Camera& camera, const entity_s* entity, float a
 
     glm::vec3 pos = qvec2glm(origin);
     glm::mat4 model =
-        glm::translate(glm::mat4(), pos)
-        * glm::rotate(glm::mat4(), glm::radians(angles[YAW]),   {0, 1, 0})
-        * glm::rotate(glm::mat4(), glm::radians(angles[PITCH]), {0, 0, 1})
-        * glm::rotate(glm::mat4(), glm::radians(angles[ROLL]),  {1, 0, 0})
+        glm::translate(glm::identity<glm::mat4>(), pos)
+        * glm::rotate(glm::identity<glm::mat4>(), glm::radians(angles[YAW]),   {0, 1, 0})
+        * glm::rotate(glm::identity<glm::mat4>(), glm::radians(angles[PITCH]), {0, 0, 1})
+        * glm::rotate(glm::identity<glm::mat4>(), glm::radians(angles[ROLL]),  {1, 0, 0})
         ;
 
     // clip agains view frustum

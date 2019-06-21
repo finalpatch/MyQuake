@@ -199,10 +199,10 @@ void LevelRenderer::renderSubmodel(const Camera& camera, const entity_s* entity)
 
     glm::vec3 pos = qvec2glm(origin);
     glm::mat4 model =
-        glm::translate(glm::mat4(), pos)
-        * glm::rotate(glm::mat4(), glm::radians(angles[1]), {0, 1, 0})
-        * glm::rotate(glm::mat4(), glm::radians(angles[0]), {1, 0, 0})
-        * glm::rotate(glm::mat4(), glm::radians(angles[2]), {0, 0, 1});
+        glm::translate(glm::identity<glm::mat4>(), pos)
+        * glm::rotate(glm::identity<glm::mat4>(), glm::radians(angles[1]), {0, 1, 0})
+        * glm::rotate(glm::identity<glm::mat4>(), glm::radians(angles[0]), {1, 0, 0})
+        * glm::rotate(glm::identity<glm::mat4>(), glm::radians(angles[2]), {0, 0, 1});
 
     // clip agains view frustum
     auto mvp = camera.vpMat * model;
@@ -226,7 +226,7 @@ void LevelRenderer::renderWorld(const Camera& camera, const entity_s* entity)
 	auto viewleaf = Mod_PointInLeaf(r_origin, cl.worldmodel);
     markLeaves(viewleaf);
     walkBspTree(camera, cl.worldmodel->nodes, entity);
-    renderTextureChains(camera, {});
+    renderTextureChains(camera, glm::identity<glm::mat4>());
 }
 
 void LevelRenderer::emitSurface(const msurface_s& surf, int frame)

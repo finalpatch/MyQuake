@@ -1,6 +1,5 @@
 #pragma once
 
-#define GLM_FORCE_CTOR_INIT
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 

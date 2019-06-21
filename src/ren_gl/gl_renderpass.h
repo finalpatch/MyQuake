@@ -3,7 +3,6 @@
 #include "gl_helpers.h"
 #include "gl_vertexattr.h"
 
-#define GLM_FORCE_CTOR_INIT
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
