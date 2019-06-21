@@ -1,10 +1,9 @@
-build
-id1/*.pak
-id1/music
-id1/autoexec.cfg
-id1/config.cfg
-.codelite
-cmake-build-Debug
+/build
+/id1/*.pak
+/id1/music
+/id1/autoexec.cfg
+/id1/config.cfg
+/.ccls-cache
 /.vscode
 /MyQuake.workspace
 /MyQuake.project
